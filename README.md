@@ -1,8 +1,8 @@
 ﻿# StorageConnector: A Unified Interface for Cloud Storage.
-**StorageConnector** is an open-source C# class library that provides a wrapper around existing services that are used to verify Mobile numbers and send messages.
+**StorageConnector** is an open-source C# class library that provides a wrapper around existing services that are used to store files in the Cloud
 ## Features
 
-- TBD
+- Integrates with Azure Blob Storage
 
 
 ## Contributing
