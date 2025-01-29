@@ -1,14 +1,22 @@
 ﻿using EarthCountriesInfo;
 using StorageConnector.Common;
 using StorageConnector.Common.DTOs;
+using StorageConnector.Services.Azure;
 
 namespace StorageConnector
 {
 	public sealed class StorageConnectorService : IStorageProvidor
 	{
-		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath)
+		private readonly AzureBlobStorageService _azureBlobStorageService;
+
+		public StorageConnectorService(AzureBlobStorageService azureBlobStorageService)
 		{
-			throw new NotImplementedException();
+			_azureBlobStorageService = azureBlobStorageService;
+		}
+
+		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 1)
+		{
+			return _azureBlobStorageService.GenerateDirectUploadURL(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
 		}
 	}
 }

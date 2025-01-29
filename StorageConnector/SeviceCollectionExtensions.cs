@@ -8,6 +8,7 @@ namespace StorageConnector
 		public static void AddStorageConnectors(this IServiceCollection services)
 		{
 			services.AddSingleton<AzureBlobStoragesInitializer>();
+			services.AddSingleton<AzureBlobStorageService>();
 		}
 	}
 }

@@ -5,6 +5,6 @@ namespace StorageConnector.Common
 {
 	public interface IStorageProvidor
 	{
-		Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath);
+		Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60);
 	}
 }

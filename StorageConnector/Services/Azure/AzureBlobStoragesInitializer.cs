@@ -1,4 +1,6 @@
-﻿using EarthCountriesInfo;
+﻿using Azure.Storage;
+using Azure.Storage.Blobs;
+using EarthCountriesInfo;
 using Microsoft.Extensions.Configuration;
 
 namespace StorageConnector.Services.Azure
@@ -6,7 +8,7 @@ namespace StorageConnector.Services.Azure
 	public sealed class AzureBlobStoragesInitializer
     {
 		internal readonly AzureBlobStorageSettings AzureBlobStorageSettings;
-
+		internal readonly Dictionary<string, BlobServiceClient> AccountNamesMappedToBlobServiceClient = [];
 		public AzureBlobStoragesInitializer(IConfiguration configuration)
         {
             var azureConfig = configuration.GetSection("StorageConnectors:Azure");
@@ -15,6 +17,13 @@ namespace StorageConnector.Services.Azure
 				CountryIsoCodeMapToAccountName = ParseCountryIsoCodeMap(azureConfig.GetSection("CountryIsoCodeMapToAccountName").Get<Dictionary<string, string>>()),
 				Accounts = azureConfig.GetRequiredSection("Accounts").Get<List<AzureAccount>>()
 			};
+			foreach (var account in AzureBlobStorageSettings.Accounts)
+			{
+				AccountNamesMappedToBlobServiceClient[account.AccountName] = new BlobServiceClient(
+					new Uri($"https://{account.AccountName}.blob.core.windows.net"),
+					new StorageSharedKeyCredential(account.AccountName, account.AccountKey)
+				);
+			}
 		}
 
 		private Dictionary<CountryIsoCode, string> ParseCountryIsoCodeMap(Dictionary<string, string>? rawMap)

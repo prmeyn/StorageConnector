@@ -66,11 +66,6 @@ namespace StorageConnector.Common.DTOs
 			return _value ?? string.Empty;
 		}
 
-		public string GetRawValue()
-		{
-			return _value;
-		}
-
 		public static implicit operator CloudFileName(string value)
 		{
 			return new CloudFileName(value);
