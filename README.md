@@ -2,8 +2,7 @@
 **StorageConnector** is an open-source C# class library that provides a wrapper around existing services that are used to verify Mobile numbers and send messages.
 ## Features
 
-- Covers Twilio, Plivo (possible to cover more if needed)
-- Usage information is stored in your own MongoDB instance for audit reasons
+- TBD
 
 
 ## Contributing
