@@ -1,7 +1,7 @@
 ﻿using Azure.Storage;
 using Azure.Storage.Blobs;
-using EarthCountriesInfo;
 using Microsoft.Extensions.Configuration;
+using StorageConnector.Common;
 
 namespace StorageConnector.Services.Azure
 {
@@ -11,10 +11,10 @@ namespace StorageConnector.Services.Azure
 		internal readonly Dictionary<string, BlobServiceClient> AccountNamesMappedToBlobServiceClient = [];
 		public AzureBlobStoragesInitializer(IConfiguration configuration)
         {
-            var azureConfig = configuration.GetSection("StorageConnectors:Azure");
+            var azureConfig = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:Azure");
 			AzureBlobStorageSettings = new AzureBlobStorageSettings
 			{
-				CountryIsoCodeMapToAccountName = ParseCountryIsoCodeMap(azureConfig.GetSection("CountryIsoCodeMapToAccountName").Get<Dictionary<string, string>>()),
+				CountryIsoCodeMapToAccountName = (azureConfig.GetSection("CountryIsoCodeMapToAccountName").Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
 				Accounts = azureConfig.GetRequiredSection("Accounts").Get<List<AzureAccount>>()
 			};
 			foreach (var account in AzureBlobStorageSettings.Accounts)
@@ -24,26 +24,6 @@ namespace StorageConnector.Services.Azure
 					new StorageSharedKeyCredential(account.AccountName, account.AccountKey)
 				);
 			}
-		}
-
-		private Dictionary<CountryIsoCode, string> ParseCountryIsoCodeMap(Dictionary<string, string>? rawMap)
-		{
-			var parsedMap = new Dictionary<CountryIsoCode, string>();
-
-			foreach (var kvp in rawMap)
-			{
-				if (Enum.TryParse(kvp.Key, ignoreCase: true, out CountryIsoCode countryIsoCode))
-				{
-					parsedMap[countryIsoCode] = kvp.Value;
-				}
-				else
-				{
-					// Handle invalid country codes (e.g., log a warning or throw an exception)
-					throw new ArgumentException($"Invalid country ISO code: {kvp.Key}");
-				}
-			}
-
-			return parsedMap;
 		}
 	}
 }
