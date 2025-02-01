@@ -18,7 +18,7 @@ namespace StorageConnector.Services.Azure
 			_logger = logger;
 		}
 
-		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
+		public Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
 			if (_azureBlobStoragesInitializer.AzureBlobStorageSettings.Accounts.Any())
 			{
@@ -59,7 +59,11 @@ namespace StorageConnector.Services.Azure
 
 					Uri sasUri = blobClient.GenerateSasUri(sasBuilder);
 
-					return Task.FromResult(sasUri.ToString());
+					return Task.FromResult(new UploadInfo() { 
+						DirectUploadUrl = sasUri.ToString(),
+						Headers = new Dictionary<string, string> { { "Content-Type", contentType }, { "x-ms-blob-type", "BlockBlob" } },
+						HttpMethod = "PUT"
+					});
 				}
 			}
 

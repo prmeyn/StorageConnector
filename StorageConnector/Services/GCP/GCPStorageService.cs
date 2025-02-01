@@ -17,7 +17,7 @@ namespace StorageConnector.Services.GCP
 			_logger = logger;
 		}
 
-		public async Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
+		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
 			IAMCredentialsClient iamCredentialsClient = _gcpStoragesInitializer._iamCredentialsClient;
 
@@ -41,7 +41,12 @@ namespace StorageConnector.Services.GCP
 
 				var signedUrl = $"{storageUri}?GoogleAccessId={gcpStorageAccount.ServiceAccountEmail}&Expires={expiration}&Signature={Uri.EscapeDataString(signature)}";
 
-				return signedUrl;
+				return new UploadInfo()
+				{
+					DirectUploadUrl = signedUrl,
+					Headers = new Dictionary<string, string> { { "Content-Type", contentType } },
+					HttpMethod = "PUT"
+				};
 			}
 
 			_logger.LogError($"No GCP account found for country ISO code: {countryOfResidenceIsoCode}");

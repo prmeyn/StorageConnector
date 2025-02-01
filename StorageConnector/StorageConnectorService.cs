@@ -21,7 +21,7 @@ namespace StorageConnector
 			_GCPStorageService = gCPStorageService;
 		}
 
-		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 1)
+		public Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 1)
 		{
 			var extension = GetExtensionFromContentType(contentType);
 			if (!string.IsNullOrWhiteSpace(extension))
@@ -29,8 +29,8 @@ namespace StorageConnector
 				fileReferenceWithPath = fileReferenceWithPath.ToString().EndsWith(extension) ? fileReferenceWithPath : new CloudFileName($"{fileReferenceWithPath}{extension}");
 
 
-				//return _GCPStorageService.GenerateDirectUploadURL(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
-				return _azureBlobStorageService.GenerateDirectUploadURL(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
+				return _GCPStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
+				//return _azureBlobStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
 			}
 			return null;
 		}
