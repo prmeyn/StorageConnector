@@ -1,4 +1,5 @@
 ﻿using EarthCountriesInfo;
+using Microsoft.AspNetCore.StaticFiles;
 using StorageConnector.Common;
 using StorageConnector.Common.DTOs;
 using StorageConnector.Services.Azure;
@@ -20,10 +21,31 @@ namespace StorageConnector
 			_GCPStorageService = gCPStorageService;
 		}
 
-		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 1)
+		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 1)
 		{
-			return _GCPStorageService.GenerateDirectUploadURL(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
-			//return _azureBlobStorageService.GenerateDirectUploadURL(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
+			var extension = GetExtensionFromContentType(contentType);
+			if (!string.IsNullOrWhiteSpace(extension))
+			{
+				fileReferenceWithPath = fileReferenceWithPath.ToString().EndsWith(extension) ? fileReferenceWithPath : new CloudFileName($"{fileReferenceWithPath}{extension}");
+
+
+				//return _GCPStorageService.GenerateDirectUploadURL(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
+				return _azureBlobStorageService.GenerateDirectUploadURL(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
+			}
+			return null;
+		}
+
+		public static string? GetExtensionFromContentType(string contentType)
+		{
+			var provider = new FileExtensionContentTypeProvider();
+			foreach (var mapping in provider.Mappings)
+			{
+				if (mapping.Value.Equals(contentType, StringComparison.OrdinalIgnoreCase))
+				{
+					return mapping.Key; // Returns something like ".jpg"
+				}
+			}
+			return null; // Return null if no match is found
 		}
 	}
 }

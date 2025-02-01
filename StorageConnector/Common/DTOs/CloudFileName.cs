@@ -26,7 +26,7 @@ namespace StorageConnector.Common.DTOs
 			if (string.IsNullOrEmpty(name) || name.Length < 1 || name.Length > 1024)
 				return false;
 
-			if (name.IndexOfAny(new char[] { '\0', '\n', '\r' }) != -1)
+			if (name.IndexOfAny(['\0', '\n', '\r']) != -1)
 				return false;
 
 			if (name.Contains("../") || name.Contains("..\\") || name.StartsWith("./") || name.StartsWith(".\\"))
@@ -61,7 +61,7 @@ namespace StorageConnector.Common.DTOs
 			return string.Equals(_value, other._value, StringComparison.Ordinal);
 		}
 
-		public override string ToString()
+		public override readonly string ToString()
 		{
 			return _value ?? string.Empty;
 		}

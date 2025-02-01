@@ -18,7 +18,7 @@ namespace StorageConnector.Services.Azure
 			_logger = logger;
 		}
 
-		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60)
+		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
 			if (_azureBlobStoragesInitializer.AzureBlobStorageSettings.Accounts.Any())
 			{

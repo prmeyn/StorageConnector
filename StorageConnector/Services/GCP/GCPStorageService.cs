@@ -1,9 +1,8 @@
 ﻿using EarthCountriesInfo;
+using Google.Cloud.Iam.Credentials.V1;
 using Microsoft.Extensions.Logging;
 using StorageConnector.Common;
 using StorageConnector.Common.DTOs;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace StorageConnector.Services.GCP
 {
@@ -18,8 +17,9 @@ namespace StorageConnector.Services.GCP
 			_logger = logger;
 		}
 
-		public Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60)
+		public async Task<string> GenerateDirectUploadURL(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
+			IAMCredentialsClient iamCredentialsClient = _gcpStoragesInitializer._iamCredentialsClient;
 
 			if (_gcpStoragesInitializer.GCPStorageSettings.Accounts.Any())
 			{
@@ -27,19 +27,21 @@ namespace StorageConnector.Services.GCP
 				var gcpStorageAccount = _gcpStoragesInitializer.GCPStorageSettings.Accounts.FirstOrDefault(); //todo
 
 				var storageUri = $"https://storage.googleapis.com/{gcpStorageAccount.BucketName}/{blobName}";
-
 				var expiration = DateTimeOffset.UtcNow.AddMinutes(expiryInMinutes).ToUnixTimeSeconds();
-				var signatureString = $"PUT\n\n\n{expiration}\n/{gcpStorageAccount.BucketName}/{blobName}";
+				var stringToSign = $"PUT\n\n{contentType}\n{expiration}\n/{gcpStorageAccount.BucketName}/{blobName}";
 
-				using var rsa = new RSACryptoServiceProvider();
-				rsa.ImportFromPem(gcpStorageAccount.PrivateKey);
+				// ✅ Sign the string using IAMCredentialsClient instead of PrivateKey
+				var signBlobResponse = await iamCredentialsClient.SignBlobAsync(new SignBlobRequest
+				{
+					Name = $"projects/-/serviceAccounts/{gcpStorageAccount.ServiceAccountEmail}",
+					Payload = Google.Protobuf.ByteString.CopyFromUtf8(stringToSign)
+				});
 
-				var signatureBytes = rsa.SignData(Encoding.UTF8.GetBytes(signatureString), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-				var signature = Convert.ToBase64String(signatureBytes);
+				var signature = Convert.ToBase64String(signBlobResponse.SignedBlob.ToByteArray());
 
 				var signedUrl = $"{storageUri}?GoogleAccessId={gcpStorageAccount.ServiceAccountEmail}&Expires={expiration}&Signature={Uri.EscapeDataString(signature)}";
 
-				return Task.FromResult(signedUrl);
+				return signedUrl;
 			}
 
 			_logger.LogError($"No GCP account found for country ISO code: {countryOfResidenceIsoCode}");

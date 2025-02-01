@@ -11,7 +11,6 @@ namespace StorageConnector.Services.GCP
 	public sealed class GCPAccount
 	{
 		public required string BucketName { get; init; }
-		public required string PrivateKey { get; init; }
 		public required string ServiceAccountEmail { get; init; }
 	}
 }
