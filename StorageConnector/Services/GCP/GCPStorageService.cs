@@ -24,7 +24,11 @@ namespace StorageConnector.Services.GCP
 			if (_gcpStoragesInitializer.GCPStorageSettings.Accounts.Any())
 			{
 				var blobName = fileReferenceWithPath.ToString();
-				var gcpStorageAccount = _gcpStoragesInitializer.GCPStorageSettings.Accounts.FirstOrDefault(); //todo
+				var gcpStorageAccount = _gcpStoragesInitializer.GCPStorageSettings.Accounts.First();
+				if (_gcpStoragesInitializer.GCPStorageSettings.CountryIsoCodeMapToAccountName.TryGetValue(countryOfResidenceIsoCode, out string bucketName))
+				{
+					gcpStorageAccount = _gcpStoragesInitializer.GCPStorageSettings.Accounts.FirstOrDefault(b => b.BucketName == bucketName);
+				}
 
 				var storageUri = $"https://storage.googleapis.com/{gcpStorageAccount.BucketName}/{blobName}";
 				var expiration = DateTimeOffset.UtcNow.AddMinutes(expiryInMinutes).ToUnixTimeSeconds();

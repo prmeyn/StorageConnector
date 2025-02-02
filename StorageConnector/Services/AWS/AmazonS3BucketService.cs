@@ -20,21 +20,30 @@ namespace StorageConnector.Services.AWS
 
 		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
-			var x = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First();
-			var request = new GetPreSignedUrlRequest
+			if (_amazonS3BucketsInitializer.AmazonS3BucketSettings.Accounts.Any())
 			{
-				BucketName = x.Key,
-				Key = fileReferenceWithPath.ToString(),
-				Verb = HttpVerb.PUT,
-				Expires = DateTime.UtcNow.AddMinutes(expiryInMinutes)
-			};
+				var bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First();
+				if (_amazonS3BucketsInitializer.AmazonS3BucketSettings.CountryIsoCodeMapToAccountName.TryGetValue(countryOfResidenceIsoCode, out string bucketName))
+				{
+					bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First(b => b.Key == bucketName);
+				}
+				var request = new GetPreSignedUrlRequest
+				{
+					BucketName = bucketNameToClient.Key,
+					Key = fileReferenceWithPath.ToString(),
+					Verb = HttpVerb.PUT,
+					Expires = DateTime.UtcNow.AddMinutes(expiryInMinutes)
+				};
 
-			return new UploadInfo()
-			{
-				DirectUploadUrl = x.Value.GetPreSignedURL(request),
-				Headers = new Dictionary<string, string> { { "Content-Type", contentType } },
-				HttpMethod = "PUT"
-			};
+				return new UploadInfo()
+				{
+					DirectUploadUrl = bucketNameToClient.Value.GetPreSignedURL(request),
+					Headers = new Dictionary<string, string> { { "Content-Type", contentType } },
+					HttpMethod = "PUT"
+				};
+			}
+			_logger.LogError($"No AmazonS3 account found for country ISO code: {countryOfResidenceIsoCode}");
+			throw new InvalidOperationException($"No AmazonS3 account found for country ISO code: {countryOfResidenceIsoCode}");
 		}
 	}
 }
