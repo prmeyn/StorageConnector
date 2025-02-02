@@ -13,13 +13,14 @@ namespace StorageConnector.Services.GCP
 
 		public GCPStoragesInitializer(IConfiguration configuration)
 		{
-			var azureConfig = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:GCP");
+			return;
+			var gcpConfig = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:GCP");
 			GCPStorageSettings = new GCPStorageSettings
 			{
-				CountryIsoCodeMapToAccountName = (azureConfig.GetSection("CountryIsoCodeMapToAccountName").Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
-				Accounts = azureConfig.GetRequiredSection("Accounts").Get<List<GCPAccount>>()
+				CountryIsoCodeMapToAccountName = (gcpConfig.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName).Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
+				Accounts = gcpConfig.GetRequiredSection("Accounts").Get<List<GCPAccount>>()
 			};
-			var gcpCredentialsJson = JsonConvert.SerializeObject(configuration.GetSection("GcpCredentials").Get<Dictionary<string, string>>());
+			var gcpCredentialsJson = JsonConvert.SerializeObject(gcpConfig.GetSection("GcpCredentials").Get<Dictionary<string, string>>());
 			var googleCredential = GoogleCredential.FromJson(gcpCredentialsJson);
 			_iamCredentialsClient = new IAMCredentialsClientBuilder { Credential = googleCredential }.Build();
 		}

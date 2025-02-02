@@ -1,4 +1,6 @@
-﻿using EarthCountriesInfo;
+﻿using Amazon.S3.Model;
+using Amazon.S3;
+using EarthCountriesInfo;
 using Microsoft.Extensions.Logging;
 using StorageConnector.Common;
 using StorageConnector.Common.DTOs;
@@ -16,9 +18,23 @@ namespace StorageConnector.Services.AWS
 			_logger = logger;
 		}
 
-		public Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
+		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
-			throw new NotImplementedException();
+			var x = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First();
+			var request = new GetPreSignedUrlRequest
+			{
+				BucketName = x.Key,
+				Key = fileReferenceWithPath.ToString(),
+				Verb = HttpVerb.PUT,
+				Expires = DateTime.UtcNow.AddMinutes(expiryInMinutes)
+			};
+
+			return new UploadInfo()
+			{
+				DirectUploadUrl = x.Value.GetPreSignedURL(request),
+				Headers = new Dictionary<string, string> { { "Content-Type", contentType } },
+				HttpMethod = "PUT"
+			};
 		}
 	}
 }

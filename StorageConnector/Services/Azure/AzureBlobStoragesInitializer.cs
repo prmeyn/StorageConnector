@@ -14,7 +14,7 @@ namespace StorageConnector.Services.Azure
             var azureConfig = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:Azure");
 			AzureBlobStorageSettings = new AzureBlobStorageSettings
 			{
-				CountryIsoCodeMapToAccountName = (azureConfig.GetSection("CountryIsoCodeMapToAccountName").Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
+				CountryIsoCodeMapToAccountName = (azureConfig.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName).Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
 				Accounts = azureConfig.GetRequiredSection("Accounts").Get<List<AzureAccount>>()
 			};
 			foreach (var account in AzureBlobStorageSettings.Accounts)

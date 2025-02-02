@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.StaticFiles;
 using StorageConnector.Common;
 using StorageConnector.Common.DTOs;
+using StorageConnector.Services.AWS;
 using StorageConnector.Services.Azure;
 using StorageConnector.Services.GCP;
 
@@ -9,16 +10,20 @@ namespace StorageConnector
 {
 	public sealed class StorageConnectorService : IStorageProvidor
 	{
-		private readonly AzureBlobStorageService _azureBlobStorageService;
-		private readonly GCPStorageService _GCPStorageService;
+		//private readonly AzureBlobStorageService _azureBlobStorageService;
+		private readonly AmazonS3BucketService _amazonS3BucketService;
+		//private readonly GCPStorageService _GCPStorageService;
+
 
 		public StorageConnectorService(
 			AzureBlobStorageService azureBlobStorageService,
+			AmazonS3BucketService awsS3BucketService,
 			GCPStorageService gCPStorageService
 			)
 		{
-			_azureBlobStorageService = azureBlobStorageService;
-			_GCPStorageService = gCPStorageService;
+			//_azureBlobStorageService = azureBlobStorageService;
+			_amazonS3BucketService = awsS3BucketService;
+			//_GCPStorageService = gCPStorageService;
 		}
 
 		public Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 1)
@@ -30,7 +35,8 @@ namespace StorageConnector
 
 
 				//return _GCPStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
-				return _azureBlobStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
+				//return _azureBlobStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
+				return _amazonS3BucketService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
 			}
 			return null;
 		}

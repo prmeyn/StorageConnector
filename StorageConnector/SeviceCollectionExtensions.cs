@@ -1,5 +1,6 @@
 ﻿using EarthCountriesInfo;
 using Microsoft.Extensions.DependencyInjection;
+using StorageConnector.Services.AWS;
 using StorageConnector.Services.Azure;
 using StorageConnector.Services.GCP;
 
@@ -11,6 +12,9 @@ namespace StorageConnector
 		{
 			services.AddSingleton<AzureBlobStoragesInitializer>();
 			services.AddSingleton<AzureBlobStorageService>();
+
+			services.AddSingleton<AmazonS3BucketsInitializer>();
+			services.AddSingleton<AmazonS3BucketService>();
 
 			services.AddSingleton<GCPStoragesInitializer>();
 			services.AddSingleton<GCPStorageService>();
