@@ -18,9 +18,9 @@ namespace StorageConnector.Services.Azure
 			_logger = logger;
 		}
 
-		public Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
+		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
-			if (_azureBlobStoragesInitializer.AzureBlobStorageSettings.Accounts.Any())
+			if (await HasAccounts())
 			{
 				AzureAccount? azureAccount = null;
 				if (_azureBlobStoragesInitializer.AzureBlobStorageSettings.CountryIsoCodeMapToAccountName.TryGetValue(countryOfResidenceIsoCode, out string? accountName))
@@ -59,16 +59,18 @@ namespace StorageConnector.Services.Azure
 
 					Uri sasUri = blobClient.GenerateSasUri(sasBuilder);
 
-					return Task.FromResult(new UploadInfo() { 
+					return new UploadInfo() { 
 						DirectUploadUrl = sasUri.ToString(),
 						Headers = new Dictionary<string, string> { { "Content-Type", contentType }, { "x-ms-blob-type", "BlockBlob" } },
 						HttpMethod = "PUT"
-					});
+					};
 				}
 			}
 
-			_logger.LogError($"No Azure account found for country ISO code: {countryOfResidenceIsoCode}");
-			throw new InvalidOperationException($"No Azure account found for country ISO code: {countryOfResidenceIsoCode}");
+			_logger.LogError("No Azure account found");
+			throw new InvalidOperationException("No Azure account found");
 		}
+
+		public async Task<bool> HasAccounts() => _azureBlobStoragesInitializer?.AzureBlobStorageSettings?.Accounts?.Any() ?? false;
 	}
 }

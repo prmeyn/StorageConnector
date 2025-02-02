@@ -26,19 +26,21 @@ namespace StorageConnector
 		{
 			var parsedMap = new Dictionary<CountryIsoCode, string>();
 
-			foreach (var kvp in rawMap)
+			if (rawMap?.Any() ?? false)
 			{
-				if (Enum.TryParse(kvp.Key, ignoreCase: true, out CountryIsoCode countryIsoCode))
+				foreach (var kvp in rawMap)
 				{
-					parsedMap[countryIsoCode] = kvp.Value;
-				}
-				else
-				{
-					// Handle invalid country codes (e.g., log a warning or throw an exception)
-					throw new ArgumentException($"Invalid country ISO code: {kvp.Key}");
+					if (Enum.TryParse(kvp.Key, ignoreCase: true, out CountryIsoCode countryIsoCode))
+					{
+						parsedMap[countryIsoCode] = kvp.Value;
+					}
+					else
+					{
+						// Handle invalid country codes (e.g., log a warning or throw an exception)
+						throw new ArgumentException($"Invalid country ISO code: {kvp.Key}");
+					}
 				}
 			}
-
 			return parsedMap;
 		}
 	}

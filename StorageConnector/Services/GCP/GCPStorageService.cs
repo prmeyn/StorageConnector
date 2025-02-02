@@ -19,10 +19,9 @@ namespace StorageConnector.Services.GCP
 
 		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
-			IAMCredentialsClient iamCredentialsClient = _gcpStoragesInitializer._iamCredentialsClient;
-
-			if (_gcpStoragesInitializer.GCPStorageSettings.Accounts.Any())
+			if (await HasAccounts())
 			{
+				IAMCredentialsClient iamCredentialsClient = _gcpStoragesInitializer._iamCredentialsClient;
 				var blobName = fileReferenceWithPath.ToString();
 				var gcpStorageAccount = _gcpStoragesInitializer.GCPStorageSettings.Accounts.First();
 				if (_gcpStoragesInitializer.GCPStorageSettings.CountryIsoCodeMapToAccountName.TryGetValue(countryOfResidenceIsoCode, out string bucketName))
@@ -53,8 +52,10 @@ namespace StorageConnector.Services.GCP
 				};
 			}
 
-			_logger.LogError($"No GCP account found for country ISO code: {countryOfResidenceIsoCode}");
-			throw new InvalidOperationException($"No GCP account found for country ISO code: {countryOfResidenceIsoCode}");
+			_logger.LogError("No valid GCP accounts found");
+			throw new InvalidOperationException("No valid GCP accounts found");
 		}
+
+		public async Task<bool> HasAccounts() => _gcpStoragesInitializer?.GCPStorageSettings?.Accounts?.Any() ?? false;
 	}
 }

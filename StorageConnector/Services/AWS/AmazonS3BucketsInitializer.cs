@@ -15,37 +15,41 @@ namespace StorageConnector.Services.AWS
 		public AmazonS3BucketsInitializer(IConfiguration configuration)
 		{
 			var awsOptions = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:AWS");
-			var commonAWSCredentialsOptions = awsOptions.GetSection("AwsCredentials").Get<AwsCredentials>();
-			
-			BasicAWSCredentials? _commonBasicAWSCredentials = null;
 
-			if (commonAWSCredentialsOptions.HasCredentials)
+			if (awsOptions.Exists())
 			{
-				_commonBasicAWSCredentials = new BasicAWSCredentials(commonAWSCredentialsOptions.AccessKey, commonAWSCredentialsOptions.SecretAccessKey);
-			}
-			
+				var commonAWSCredentialsOptions = awsOptions.GetSection("AwsCredentials").Get<AwsCredentials>();
 
-			AmazonS3BucketSettings = new AmazonS3BucketSettings
-			{
-				CountryIsoCodeMapToAccountName = (awsOptions.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName).Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
-				Accounts = awsOptions.GetRequiredSection("Accounts").Get<List<AmazonS3Account>>()
-			};
+				BasicAWSCredentials? _commonBasicAWSCredentials = null;
 
-			foreach (var accounts in AmazonS3BucketSettings?.Accounts)
-			{
-				if (accounts?.AwsCredentials?.HasCredentials ?? false)
+				if (commonAWSCredentialsOptions.HasCredentials)
 				{
-					AccountNamesMappedToAmazonS3Client.Add(accounts.BucketName, new AmazonS3Client(
-						new BasicAWSCredentials(accounts.AwsCredentials.AccessKey, accounts.AwsCredentials.SecretAccessKey),
-						RegionEndpoint.GetBySystemName(accounts.AwsRegion)
-					));
+					_commonBasicAWSCredentials = new BasicAWSCredentials(commonAWSCredentialsOptions.AccessKey, commonAWSCredentialsOptions.SecretAccessKey);
 				}
-				else if(_commonBasicAWSCredentials is not null)
+
+
+				AmazonS3BucketSettings = new AmazonS3BucketSettings
 				{
-					AccountNamesMappedToAmazonS3Client.Add(accounts.BucketName, new AmazonS3Client(
-						_commonBasicAWSCredentials,
-						RegionEndpoint.GetBySystemName(accounts.AwsRegion)
-					));
+					CountryIsoCodeMapToAccountName = (awsOptions.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName).Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
+					Accounts = awsOptions.GetRequiredSection(ConstantStrings.AccountsConfigName).Get<List<AmazonS3Account>>()
+				};
+
+				foreach (var accounts in AmazonS3BucketSettings?.Accounts)
+				{
+					if (accounts?.AwsCredentials?.HasCredentials ?? false)
+					{
+						AccountNamesMappedToAmazonS3Client.Add(accounts.BucketName, new AmazonS3Client(
+							new BasicAWSCredentials(accounts.AwsCredentials.AccessKey, accounts.AwsCredentials.SecretAccessKey),
+							RegionEndpoint.GetBySystemName(accounts.AwsRegion)
+						));
+					}
+					else if (_commonBasicAWSCredentials is not null)
+					{
+						AccountNamesMappedToAmazonS3Client.Add(accounts.BucketName, new AmazonS3Client(
+							_commonBasicAWSCredentials,
+							RegionEndpoint.GetBySystemName(accounts.AwsRegion)
+						));
+					}
 				}
 			}
 		}

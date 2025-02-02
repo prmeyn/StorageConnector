@@ -4,5 +4,6 @@
 	{
 		public static string StorageConnectorsConfigName = "StorageConnectors";
 		public static string CountryIsoCodeMapToAccountNameConfigName = "CountryIsoCodeMapToAccountName";
+		public static string AccountsConfigName = "Accounts";
 	}
 }

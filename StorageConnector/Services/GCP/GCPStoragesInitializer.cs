@@ -8,20 +8,23 @@ namespace StorageConnector.Services.GCP
 {
 	public sealed class GCPStoragesInitializer
 	{
-		internal readonly GCPStorageSettings GCPStorageSettings;
-		internal readonly IAMCredentialsClient _iamCredentialsClient;
+		internal readonly GCPStorageSettings? GCPStorageSettings;
+		internal readonly IAMCredentialsClient? _iamCredentialsClient;
 
 		public GCPStoragesInitializer(IConfiguration configuration)
 		{
 			var gcpConfig = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:GCP");
-			GCPStorageSettings = new GCPStorageSettings
+			if (gcpConfig.Exists())
 			{
-				CountryIsoCodeMapToAccountName = (gcpConfig.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName).Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
-				Accounts = gcpConfig.GetRequiredSection("Accounts").Get<List<GCPAccount>>()
-			};
-			var gcpCredentialsJson = JsonConvert.SerializeObject(gcpConfig.GetSection("GcpCredentials").Get<Dictionary<string, string>>());
-			var googleCredential = GoogleCredential.FromJson(gcpCredentialsJson);
-			_iamCredentialsClient = new IAMCredentialsClientBuilder { Credential = googleCredential }.Build();
+				GCPStorageSettings = new GCPStorageSettings
+				{
+					CountryIsoCodeMapToAccountName = (gcpConfig.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName).Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
+					Accounts = gcpConfig.GetRequiredSection(ConstantStrings.AccountsConfigName).Get<List<GCPAccount>>()
+				};
+				var gcpCredentialsJson = JsonConvert.SerializeObject(gcpConfig.GetSection("GcpCredentials").Get<Dictionary<string, string>>());
+				var googleCredential = GoogleCredential.FromJson(gcpCredentialsJson);
+				_iamCredentialsClient = new IAMCredentialsClientBuilder { Credential = googleCredential }.Build();
+			}
 		}
 	}
 }

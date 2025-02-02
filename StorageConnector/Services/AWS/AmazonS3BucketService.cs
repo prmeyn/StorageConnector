@@ -20,7 +20,7 @@ namespace StorageConnector.Services.AWS
 
 		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
-			if (_amazonS3BucketsInitializer.AmazonS3BucketSettings.Accounts.Any())
+			if (await HasAccounts())
 			{
 				var bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First();
 				if (_amazonS3BucketsInitializer.AmazonS3BucketSettings.CountryIsoCodeMapToAccountName.TryGetValue(countryOfResidenceIsoCode, out string bucketName))
@@ -42,8 +42,10 @@ namespace StorageConnector.Services.AWS
 					HttpMethod = "PUT"
 				};
 			}
-			_logger.LogError($"No AmazonS3 account found for country ISO code: {countryOfResidenceIsoCode}");
-			throw new InvalidOperationException($"No AmazonS3 account found for country ISO code: {countryOfResidenceIsoCode}");
+			_logger.LogError("No AmazonS3 account");
+			throw new InvalidOperationException("No AmazonS3 account found");
 		}
+
+		public async Task<bool> HasAccounts() => _amazonS3BucketsInitializer?.AmazonS3BucketSettings?.Accounts?.Any() ?? false;
 	}
 }
