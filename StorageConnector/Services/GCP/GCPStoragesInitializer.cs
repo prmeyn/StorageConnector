@@ -13,7 +13,6 @@ namespace StorageConnector.Services.GCP
 
 		public GCPStoragesInitializer(IConfiguration configuration)
 		{
-			return;
 			var gcpConfig = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:GCP");
 			GCPStorageSettings = new GCPStorageSettings
 			{
