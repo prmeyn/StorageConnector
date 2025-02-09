@@ -5,6 +5,7 @@ using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using StorageConnector.Common;
 
+
 namespace StorageConnector.Services.Azure
 {
 	public sealed class AzureBlobStoragesInitializer
@@ -12,6 +13,8 @@ namespace StorageConnector.Services.Azure
 		internal readonly AzureBlobStorageSettings AzureBlobStorageSettings;
 		internal readonly Dictionary<string, BlobServiceClient> AccountNamesMappedToBlobServiceClient = [];
 		internal readonly FaceClient FaceClient;
+		internal readonly FaceAdministrationClient FaceAdministrationClient;
+
 		public AzureBlobStoragesInitializer(IConfiguration configuration)
         {
             var azureConfig = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:Azure");
@@ -26,7 +29,13 @@ namespace StorageConnector.Services.Azure
 
 				if (!string.IsNullOrWhiteSpace(azureVisionAccountSettings.ApiKey) && !string.IsNullOrWhiteSpace(azureVisionAccountSettings.Endpoint))
 				{
-					FaceClient = new FaceClient(new Uri(azureVisionAccountSettings.Endpoint), new AzureKeyCredential(azureVisionAccountSettings.ApiKey));
+					//FaceHttpClientEndpoint = azureVisionAccountSettings.Endpoint;
+					var faceEndpoint = new Uri(azureVisionAccountSettings.Endpoint);
+					var credentials = new AzureKeyCredential(azureVisionAccountSettings.ApiKey);
+					FaceClient = new FaceClient(faceEndpoint, credentials);
+					FaceAdministrationClient = new FaceAdministrationClient(faceEndpoint, credentials);
+					//FaceHttpClient = httpClient;
+					//FaceHttpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", azureVisionAccountSettings.ApiKey);
 				}
 
 				foreach (var account in AzureBlobStorageSettings.Accounts)
