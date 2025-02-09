@@ -77,5 +77,47 @@ namespace StorageConnector
 		{
 			return await _azureBlobStorageService.HasAccounts() || await _amazonS3BucketService.HasAccounts() || await _GCPStorageService.HasAccounts();
 		}
+
+		public async Task<byte?> GetNumberOfFacesOnImage(CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension)
+		{
+			if (await HasAccounts())
+			{
+				if (await _azureBlobStorageService.HasAccounts())
+				{
+					return await _azureBlobStorageService.GetNumberOfFacesOnImage(regionCountryIsoCode, fileNameWithExtension);
+				}
+				if (await _amazonS3BucketService.HasAccounts())
+				{
+					return await _amazonS3BucketService.GetNumberOfFacesOnImage(regionCountryIsoCode, fileNameWithExtension);
+				}
+				if (await _GCPStorageService.HasAccounts())
+				{
+					return await _GCPStorageService.GetNumberOfFacesOnImage(regionCountryIsoCode, fileNameWithExtension);
+				}
+			}
+			_logger.LogError("StorageConnectorService has no accounts");
+			throw new InvalidOperationException("StorageConnectorService has no accounts");
+		}
+
+		public async Task<HashSet<string>> GetMatchingFacesUserDataHashSet(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
+		{
+			if (await HasAccounts())
+			{
+				if (await _azureBlobStorageService.HasAccounts())
+				{
+					return await _azureBlobStorageService.GetMatchingFacesUserDataHashSet(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
+				}
+				if (await _amazonS3BucketService.HasAccounts())
+				{
+					return await _amazonS3BucketService.GetMatchingFacesUserDataHashSet(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
+				}
+				if (await _GCPStorageService.HasAccounts())
+				{
+					return await _GCPStorageService.GetMatchingFacesUserDataHashSet(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
+				}
+			}
+			_logger.LogError("StorageConnectorService has no accounts");
+			throw new InvalidOperationException("StorageConnectorService has no accounts");
+		}
 	}
 }

@@ -46,6 +46,16 @@ namespace StorageConnector.Services.AWS
 			throw new InvalidOperationException("No AmazonS3 account found");
 		}
 
+		public Task<HashSet<string>> GetMatchingFacesUserDataHashSet(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task<byte?> GetNumberOfFacesOnImage(CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension)
+		{
+			throw new NotImplementedException();
+		}
+
 		public async Task<bool> HasAccounts() => _amazonS3BucketsInitializer?.AmazonS3BucketSettings?.Accounts?.Any() ?? false;
 	}
 }
