@@ -6,7 +6,6 @@ using EarthCountriesInfo;
 using Microsoft.Extensions.Logging;
 using StorageConnector.Common;
 using StorageConnector.Common.DTOs;
-using System.Drawing;
 
 namespace StorageConnector.Services.Azure
 {
@@ -112,46 +111,20 @@ namespace StorageConnector.Services.Azure
 						// Step 3: Convert the content to BinaryData
 						using var memoryStream = new MemoryStream();
 						await blobDownload.Content.CopyToAsync(memoryStream);
-						using var image = Image.FromStream(memoryStream);
-
-						if (image.Width < 36 || image.Height < 36)
-						{
-							_logger.LogInformation($"Image too small: {image.Width} X {image.Height}");
-							// Resize the image to a minimum acceptable size, e.g., 200x200
-							var resizedImage = new Bitmap(image, new Size(200, 200));
-							using (var resizedStream = new MemoryStream())
-							{
-								resizedImage.Save(resizedStream, image.RawFormat);
-								BinaryData imageContent = BinaryData.FromStream(resizedStream);
-
-								// Now call the Face API with the resized image
-								var result = await _azureBlobStoragesInitializer.FaceClient.DetectAsync(
-									imageContent,
-									detectionModel: FaceDetectionModel.Detection03,
-									recognitionModel: FaceRecognitionModel.Recognition04,
-									returnFaceId: false
-								);
-								return (byte)result.Value.Count;
-							}
-						}
-						else
-						{
-							// If the image is large enough, just send it
-							BinaryData imageContent = BinaryData.FromStream(memoryStream);
-							var result = await _azureBlobStoragesInitializer.FaceClient.DetectAsync(
-								imageContent,
-								detectionModel: FaceDetectionModel.Detection03,
-								recognitionModel: FaceRecognitionModel.Recognition04,
-								returnFaceId: false
-							);
-							return (byte)result.Value.Count;
-						}
-
-
+						memoryStream.Position = 0; // Ensure position reset before conversion
+												   // If the image is large enough, just send it
+						BinaryData imageContent = BinaryData.FromStream(memoryStream);
+						var result = await _azureBlobStoragesInitializer.FaceClient.DetectAsync(
+							imageContent,
+							detectionModel: FaceDetectionModel.Detection03,
+							recognitionModel: FaceRecognitionModel.Recognition04,
+							returnFaceId: false
+						);
+						return (byte)result.Value.Count;
 					}
 					catch (Exception ex)
 					{
-						_logger.LogError(ex, $"Error while detecting faces in {fileNameWithExtension}");
+						_logger.LogError(ex, "Error while detecting faces in {FileNameWithExtension} ERROR: {errorMessage}", fileNameWithExtension, ex.Message);
 					}
 				}
 			}
