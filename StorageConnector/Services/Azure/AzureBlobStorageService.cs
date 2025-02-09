@@ -116,7 +116,7 @@ namespace StorageConnector.Services.Azure
 
 						if (image.Width < 36 || image.Height < 36)
 						{
-							_logger.LogInformation($"Image too small: {image.Width} X {image.Height}");
+							_logger.LogInformation("Image too small: {Width} X {Height}", image.Width, image.Height);
 							// Resize the image to a minimum acceptable size, e.g., 200x200
 							var resizedImage = new Bitmap(image, new Size(200, 200));
 							using (var resizedStream = new MemoryStream())
@@ -146,12 +146,10 @@ namespace StorageConnector.Services.Azure
 							);
 							return (byte)result.Value.Count;
 						}
-
-
 					}
 					catch (Exception ex)
 					{
-						_logger.LogError(ex, $"Error while detecting faces in {fileNameWithExtension}");
+						_logger.LogError(ex, "Error while detecting faces in {FileNameWithExtension} ERROR: {errorMessage}", fileNameWithExtension, ex.Message);
 					}
 				}
 			}
