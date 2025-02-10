@@ -10,8 +10,6 @@ namespace StorageConnector
 	{
 		public static void AddStorageConnectors(this IServiceCollection services)
 		{
-			// Register the HttpClientFactory
-			//services.AddHttpClient<AzureBlobStoragesInitializer>();
 			services.AddSingleton<AzureBlobStoragesInitializer>();
 			services.AddSingleton<AzureBlobStorageService>();
 

@@ -3,7 +3,6 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
 using EarthCountriesInfo;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using StorageConnector.Common;
 using StorageConnector.Common.DTOs;
@@ -81,61 +80,8 @@ namespace StorageConnector.Services.Azure
 			return azureAccount;
 		}
 
-		public async Task<HashSet<string>> GetMatchingFacesUserDataHashSet(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
-		{
 
-			if (await HasAccounts())
-			{
-				AzureAccount? azureAccount = selectAzureAccount(regionCountryIsoCode);
-				if (azureAccount == null)
-				{
-					_logger.LogError("No Azure account found");
-					throw new InvalidOperationException("No Azure account found");
-				}
-				if (!string.IsNullOrWhiteSpace(azureAccount?.AccountName) && _azureBlobStoragesInitializer.AccountNamesMappedToBlobServiceClient.TryGetValue(azureAccount.AccountName, out var blobServiceClient))
-				{
-					try
-					{
-						var blobName = fileNameWithExtension.ToString();
-						// Create a BlobClient for the specific blob
-						BlobClient blobClient = blobServiceClient
-							.GetBlobContainerClient(azureAccount.ContainerName)
-							.GetBlobClient(blobName);
-
-						var startsOn = DateTimeOffset.UtcNow;
-
-						// Generate SAS Token valid for "expiryInMinutes" minutes
-						BlobSasBuilder sasBuilder = new()
-						{
-							BlobContainerName = azureAccount.ContainerName,
-							BlobName = blobName,
-							Resource = "b", // b = blob
-							StartsOn = startsOn,
-							ExpiresOn = startsOn.AddMinutes(1),
-						};
-
-						sasBuilder.SetPermissions(BlobSasPermissions.Read);
-
-						Uri sasUri = blobClient.GenerateSasUri(sasBuilder);
-						var x =  _azureBlobStoragesInitializer.FaceAdministrationClient.GetLargeFaceListClient(faceListName);
-						var xx = await x.AddFaceAsync(sasUri, userData: userData);
-						
-						var y = xx.Value.PersistedFaceId.ToString();
-
-					}
-					catch (Exception ex)
-					{
-						_logger.LogError(ex, "Error while detecting faces in {FileNameWithExtension} ERROR: {errorMessage}", fileNameWithExtension, ex.Message);
-					}
-				}
-			}
-
-			
-
-			return [];
-		}
-
-		public async Task<byte?> GetNumberOfFacesOnImage(CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension)
+		private async Task<byte> GetNumberOfFacesOnImage(CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension)
 		{
 			if (await HasAccounts())
 			{
@@ -182,5 +128,62 @@ namespace StorageConnector.Services.Azure
 		}
 
 		public async Task<bool> HasAccounts() => _azureBlobStoragesInitializer?.AzureBlobStorageSettings?.Accounts?.Any() ?? false;
+
+		public async Task<FaceInfo?> GetFaceInfo(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
+		{
+			if (await HasAccounts())
+			{
+				AzureAccount? azureAccount = selectAzureAccount(regionCountryIsoCode);
+				if (azureAccount == null)
+				{
+					_logger.LogError("No Azure account found");
+					throw new InvalidOperationException("No Azure account found");
+				}
+				if (!string.IsNullOrWhiteSpace(azureAccount?.AccountName) && _azureBlobStoragesInitializer.AccountNamesMappedToBlobServiceClient.TryGetValue(azureAccount.AccountName, out var blobServiceClient))
+				{
+					try
+					{
+						var blobName = fileNameWithExtension.ToString();
+						// Create a BlobClient for the specific blob
+						BlobClient blobClient = blobServiceClient
+							.GetBlobContainerClient(azureAccount.ContainerName)
+							.GetBlobClient(blobName);
+
+						var startsOn = DateTimeOffset.UtcNow;
+
+						// Generate SAS Token valid for "expiryInMinutes" minutes
+						BlobSasBuilder sasBuilder = new()
+						{
+							BlobContainerName = azureAccount.ContainerName,
+							BlobName = blobName,
+							Resource = "b", // b = blob
+							StartsOn = startsOn,
+							ExpiresOn = startsOn.AddMinutes(1),
+						};
+
+						sasBuilder.SetPermissions(BlobSasPermissions.Read);
+
+						Uri sasUri = blobClient.GenerateSasUri(sasBuilder);
+						var x = _azureBlobStoragesInitializer.FaceAdministrationClient.GetLargeFaceListClient(faceListName);
+						var xx = await x.AddFaceAsync(sasUri, userData: userData);
+
+						var y = xx.Value.PersistedFaceId.ToString(); // todo
+
+						return new FaceInfo()
+						{
+							NumberOfFaces = await GetNumberOfFacesOnImage(regionCountryIsoCode, fileNameWithExtension),
+							MatchingUserData = []
+						};
+
+					}
+					catch (Exception ex)
+					{
+						_logger.LogError(ex, "Error while detecting faces in {FileNameWithExtension} ERROR: {errorMessage}", fileNameWithExtension, ex.Message);
+					}
+				}
+			}
+
+			return null;
+		}
 	}
 }

@@ -56,12 +56,7 @@ namespace StorageConnector.Services.GCP
 			throw new InvalidOperationException("No valid GCP accounts found");
 		}
 
-		public Task<HashSet<string>> GetMatchingFacesUserDataHashSet(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
-		{
-			throw new NotImplementedException();
-		}
-
-		public Task<byte?> GetNumberOfFacesOnImage(CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension)
+		public Task<FaceInfo> GetFaceInfo(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
 		{
 			throw new NotImplementedException();
 		}
