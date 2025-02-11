@@ -71,7 +71,7 @@ namespace StorageConnector.Services.AWS
 					CollectionId = faceCollectionId,
 					Image = new Image { Bytes = imageStream },
 					ExternalImageId = userData, // Store user data as ExternalImageId
-					DetectionAttributes = new List<string> { "DEFAULT" }
+					DetectionAttributes = ["DEFAULT"]
 				};
 
 				await rekognitionClient.IndexFacesAsync(indexFacesRequest);
@@ -108,7 +108,7 @@ namespace StorageConnector.Services.AWS
 					var detectFacesRequest = new DetectFacesRequest
 					{
 						Image = new Image { Bytes = memoryStream },
-						Attributes = new List<string> { "DEFAULT" }
+						Attributes = ["DEFAULT"]
 					};
 
 					var detectFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.DetectFacesAsync(detectFacesRequest);
@@ -130,8 +130,8 @@ namespace StorageConnector.Services.AWS
 					{
 						CollectionId = faceListName,
 						Image = new Image { Bytes = memoryStream },
-						MaxFaces = 5, // Adjust based on use case
-						FaceMatchThreshold = 90 // Confidence threshold
+						MaxFaces = 4096,
+						FaceMatchThreshold = 98 // Confidence threshold
 					};
 
 					var searchFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.SearchFacesByImageAsync(searchFacesRequest);
