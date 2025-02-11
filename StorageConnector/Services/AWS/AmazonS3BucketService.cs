@@ -120,31 +120,35 @@ namespace StorageConnector.Services.AWS
 				}
 				try
 				{
-	
-
-					await EnsureCollectionExists(faceListName, bucketNameToClient.Value.AmazonRekognitionClient);
-
-
-					// Search for matching faces in the Face Collection
-					var searchFacesRequest = new SearchFacesByImageRequest
-					{
-						CollectionId = faceListName,
-						Image = new Image { Bytes = memoryStream },
-						MaxFaces = 4096,
-						FaceMatchThreshold = 98 // Confidence threshold
-					};
-
-					var searchFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.SearchFacesByImageAsync(searchFacesRequest);
-
-					// Extract matching face user data
 					var matchingUserData = new HashSet<string>();
-					foreach (var match in searchFacesResponse.FaceMatches)
-					{
-						matchingUserData.Add(match.Face.ExternalImageId);
-					}
 
-					// If no match, add the new face to the collection
-					await AddFaceToCollection(faceListName, memoryStream, userData, bucketNameToClient.Value.AmazonRekognitionClient);
+					if (numberOfFaces == 1)
+					{
+						await EnsureCollectionExists(faceListName, bucketNameToClient.Value.AmazonRekognitionClient);
+
+
+						// Search for matching faces in the Face Collection
+						var searchFacesRequest = new SearchFacesByImageRequest
+						{
+							CollectionId = faceListName,
+							Image = new Image { Bytes = memoryStream },
+							MaxFaces = 4096,
+							FaceMatchThreshold = 98 // Confidence threshold
+						};
+
+						var searchFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.SearchFacesByImageAsync(searchFacesRequest);
+
+						// Extract matching face user data
+						
+						foreach (var match in searchFacesResponse.FaceMatches)
+						{
+							matchingUserData.Add(match.Face.ExternalImageId);
+						}
+
+						// If no match, add the new face to the collection
+						await AddFaceToCollection(faceListName, memoryStream, userData, bucketNameToClient.Value.AmazonRekognitionClient);
+
+					}
 
 					return new FaceInfo() {
 						NumberOfFaces = numberOfFaces,
