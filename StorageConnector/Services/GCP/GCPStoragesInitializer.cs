@@ -1,8 +1,8 @@
 ﻿using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Iam.Credentials.V1;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using StorageConnector.Common;
+using System.Text.Json;
 
 namespace StorageConnector.Services.GCP
 {
@@ -21,7 +21,7 @@ namespace StorageConnector.Services.GCP
 					CountryIsoCodeMapToAccountName = (gcpConfig.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName).Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
 					Accounts = gcpConfig.GetRequiredSection(ConstantStrings.AccountsConfigName).Get<List<GCPAccount>>()
 				};
-				var gcpCredentialsJson = JsonConvert.SerializeObject(gcpConfig.GetSection("GcpCredentials").Get<Dictionary<string, string>>());
+				var gcpCredentialsJson = JsonSerializer.Serialize(gcpConfig.GetSection("GcpCredentials").Get<Dictionary<string, string>>());
 				var googleCredential = GoogleCredential.FromJson(gcpCredentialsJson);
 				_iamCredentialsClient = new IAMCredentialsClientBuilder { Credential = googleCredential }.Build();
 			}
