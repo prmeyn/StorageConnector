@@ -87,81 +87,94 @@ namespace StorageConnector.Services.AWS
 		public async Task<FaceInfo> GetFaceInfo(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
 		{
 			byte numberOfFaces = 0;
-			if (await HasAccounts())
+
+			if (!await HasAccounts())
 			{
-				var bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First();
-				if (_amazonS3BucketsInitializer.AmazonS3BucketSettings.CountryIsoCodeMapToAccountName.TryGetValue(regionCountryIsoCode, out string bucketName))
-				{
-					bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First(b => b.Key == bucketName);
-				}
-				// Get image from S3
+				_logger.LogError("No AmazonS3 account found");
+				throw new InvalidOperationException("No AmazonS3 account found");
+			}
+
+			// Retrieve the S3 client
+			var bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.FirstOrDefault();
+
+
+			if (_amazonS3BucketsInitializer.AmazonS3BucketSettings.CountryIsoCodeMapToAccountName.TryGetValue(regionCountryIsoCode, out string bucketName))
+			{
+				bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.FirstOrDefault(b => b.Key == bucketName);
+			}
+
+			if (bucketNameToClient.Equals(default(KeyValuePair<string, AmazonS3Client>)))
+			{
+				_logger.LogError("No valid S3 client found");
+				throw new InvalidOperationException("No valid S3 client found");
+			}
+
+			try
+			{
+				// Retrieve image from S3
 				var getObjectResponse = await bucketNameToClient.Value.AmazonS3Client.GetObjectAsync(bucketNameToClient.Key, fileNameWithExtension.ToString());
 				using var memoryStream = new MemoryStream();
 				await getObjectResponse.ResponseStream.CopyToAsync(memoryStream);
+
+				// Ensure collection exists
+				await EnsureCollectionExists(faceListName, bucketNameToClient.Value.AmazonRekognitionClient);
+
 				memoryStream.Position = 0;
 
-				try
+				// Call Rekognition to detect faces
+				var detectFacesRequest = new DetectFacesRequest
 				{
-					
+					Image = new Image { Bytes = memoryStream },
+					Attributes = ["DEFAULT"]
+				};
 
-					// Call Rekognition to detect faces
-					var detectFacesRequest = new DetectFacesRequest
+				var detectFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.DetectFacesAsync(detectFacesRequest);
+				numberOfFaces = (byte)detectFacesResponse.FaceDetails.Count;
+
+				// If one face is detected, attempt face search
+				var matchingUserData = new HashSet<string>();
+				if (numberOfFaces == 1)
+				{
+					// Create a separate memory stream for face search
+					memoryStream.Position = 0;
+					var searchStream = new MemoryStream(memoryStream.ToArray());
+
+					var searchFacesRequest = new SearchFacesByImageRequest
 					{
-						Image = new Image { Bytes = memoryStream },
-						Attributes = ["DEFAULT"]
+						CollectionId = faceListName,
+						Image = new Image { Bytes = searchStream },
+						MaxFaces = 4096,
+						FaceMatchThreshold = 98 // Confidence threshold
 					};
 
-					var detectFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.DetectFacesAsync(detectFacesRequest);
-					numberOfFaces = (byte)detectFacesResponse.FaceDetails.Count();
-				}
-				catch (Exception ex)
-				{
-					_logger.LogError(ex, "Error detecting faces");
-				}
-				try
-				{
-					var matchingUserData = new HashSet<string>();
+					var searchFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.SearchFacesByImageAsync(searchFacesRequest);
 
-					if (numberOfFaces == 1)
+					// Extract matched face user data
+					foreach (var match in searchFacesResponse.FaceMatches)
 					{
-						await EnsureCollectionExists(faceListName, bucketNameToClient.Value.AmazonRekognitionClient);
-
-
-						// Search for matching faces in the Face Collection
-						var searchFacesRequest = new SearchFacesByImageRequest
-						{
-							CollectionId = faceListName,
-							Image = new Image { Bytes = memoryStream },
-							MaxFaces = 4096,
-							FaceMatchThreshold = 98 // Confidence threshold
-						};
-
-						var searchFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.SearchFacesByImageAsync(searchFacesRequest);
-
-						// Extract matching face user data
-						
-						foreach (var match in searchFacesResponse.FaceMatches)
-						{
-							matchingUserData.Add(match.Face.ExternalImageId);
-						}
-
-						// If no match, add the new face to the collection
-						await AddFaceToCollection(faceListName, memoryStream, userData, bucketNameToClient.Value.AmazonRekognitionClient);
-
+						matchingUserData.Add(match.Face.ExternalImageId);
 					}
 
-					return new FaceInfo() {
-						NumberOfFaces = numberOfFaces,
-						MatchingUserData = matchingUserData
-					};
+					// If no match found, add new face
+					if (matchingUserData.Count == 0)
+					{
+						memoryStream.Position = 0; // Reset stream again
+						await AddFaceToCollection(faceListName, memoryStream, userData, bucketNameToClient.Value.AmazonRekognitionClient);
+					}
 				}
-				catch (Exception ex)
+
+				return new FaceInfo
 				{
-					_logger.LogError(ex, "Error searching faces");
-				}
+					NumberOfFaces = numberOfFaces,
+					MatchingUserData = matchingUserData
+				};
 			}
-			_logger.LogError("No AmazonS3 account");
-			throw new InvalidOperationException("No AmazonS3 account found");
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error processing face recognition");
+				throw; // Rethrow the exception for better error handling
+			}
 		}
+
 	}
 }
