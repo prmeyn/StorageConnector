@@ -13,19 +13,19 @@ namespace StorageConnector
 	{
 		private readonly AzureBlobStorageService _azureBlobStorageService;
 		private readonly AmazonS3BucketService _amazonS3BucketService;
-		private readonly GCPStorageService _GCPStorageService;
+		private readonly GCPStorageService _gcpStorageService;
 		private readonly ILogger<StorageConnectorService> _logger;
 
 		public StorageConnectorService(
 			AzureBlobStorageService azureBlobStorageService,
 			AmazonS3BucketService awsS3BucketService,
-			GCPStorageService gCPStorageService,
+			GCPStorageService gcpStorageService,
 			ILogger<StorageConnectorService> logger
 			)
 		{
 			_azureBlobStorageService = azureBlobStorageService;
 			_amazonS3BucketService = awsS3BucketService;
-			_GCPStorageService = gCPStorageService;
+			_gcpStorageService = gcpStorageService;
 
 			_logger = logger;
 		}
@@ -47,9 +47,9 @@ namespace StorageConnector
 					{
 						return await _amazonS3BucketService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
 					}
-					if (await _GCPStorageService.HasAccounts())
+					if (await _gcpStorageService.HasAccounts())
 					{
-						return await _GCPStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
+						return await _gcpStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
 					}
 				}
 				_logger.LogError("StorageConnectorService has no accounts");
@@ -75,7 +75,28 @@ namespace StorageConnector
 
 		public async Task<bool> HasAccounts()
 		{
-			return await _azureBlobStorageService.HasAccounts() || await _amazonS3BucketService.HasAccounts() || await _GCPStorageService.HasAccounts();
+			return await _azureBlobStorageService.HasAccounts() || await _amazonS3BucketService.HasAccounts() || await _gcpStorageService.HasAccounts();
+		}
+
+		public async Task<FaceInfo> GetFaceInfo(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
+		{
+			if (await HasAccounts())
+			{
+				if (await _azureBlobStorageService.HasAccounts())
+				{
+					return await _azureBlobStorageService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
+				}
+				if (await _amazonS3BucketService.HasAccounts())
+				{
+					return await _amazonS3BucketService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
+				}
+				if (await _gcpStorageService.HasAccounts())
+				{
+					return await _gcpStorageService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
+				}
+			}
+			_logger.LogError("StorageConnectorService has no accounts");
+			throw new InvalidOperationException("StorageConnectorService has no accounts");
 		}
 	}
 }

@@ -56,6 +56,11 @@ namespace StorageConnector.Services.GCP
 			throw new InvalidOperationException("No valid GCP accounts found");
 		}
 
+		public Task<FaceInfo> GetFaceInfo(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
+		{
+			throw new NotImplementedException();
+		}
+
 		public async Task<bool> HasAccounts() => _gcpStoragesInitializer?.GCPStorageSettings?.Accounts?.Any() ?? false;
 	}
 }

@@ -20,6 +20,7 @@ namespace StorageConnector.Services.AWS
 	{
 		public required string BucketName { get; init; }
 		public required string AwsRegion { get; init; }
+		public required string AwsRegionRekognition { get; init; }
 		public AwsCredentials? AwsCredentials { get; init; }
 	}
 }
