@@ -7,7 +7,7 @@ using StorageConnector.Common.DTOs;
 
 namespace StorageConnector.Services.Azure
 {
-	public sealed class AzureBlobStorageService : IStorageProvidor
+	public sealed class AzureBlobStorageService : IStorageProvider
 	{
 		private readonly AzureBlobStoragesInitializer _azureBlobStoragesInitializer;
 		private readonly ILogger<AzureBlobStorageService> _logger;

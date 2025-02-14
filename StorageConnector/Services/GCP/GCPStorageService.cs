@@ -6,7 +6,7 @@ using StorageConnector.Common.DTOs;
 
 namespace StorageConnector.Services.GCP
 {
-	public sealed class GCPStorageService : IStorageProvidor
+	public sealed class GCPStorageService : IStorageProvider
 	{
 		private readonly GCPStoragesInitializer _gcpStoragesInitializer;
 		private readonly ILogger<GCPStorageService> _logger;

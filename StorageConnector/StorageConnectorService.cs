@@ -9,7 +9,7 @@ using StorageConnector.Services.GCP;
 
 namespace StorageConnector
 {
-	public sealed class StorageConnectorService : IStorageProvidor
+	public sealed class StorageConnectorService : IStorageProvider
 	{
 		private readonly AzureBlobStorageService _azureBlobStorageService;
 		private readonly AmazonS3BucketService _amazonS3BucketService;

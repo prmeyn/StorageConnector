@@ -7,7 +7,7 @@ using StorageConnector.Common.DTOs;
 
 namespace StorageConnector.Services.AWS
 {
-	public sealed class AmazonS3BucketService : IStorageProvidor
+	public sealed class AmazonS3BucketService : IStorageProvider
 	{
 		private readonly AmazonS3BucketsInitializer _amazonS3BucketsInitializer;
 		private readonly ILogger<AmazonS3BucketService> _logger;
