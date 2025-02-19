@@ -130,10 +130,27 @@ namespace StorageConnector.Services.AWS
 
 				var detectFacesResponse = await bucketNameToClient.Value.AmazonRekognitionClient.DetectFacesAsync(detectFacesRequest);
 				numberOfFaces = (byte)detectFacesResponse.FaceDetails.Count;
+const float MinSharpness = 50.0f;
+const float MinBrightness = 30.0f;
+const float MaxBrightness = 70.0f; // Avoid overexposed faces
+
+var highQualityFaces = detectFacesResponse.FaceDetails
+    .Where(face => face.Quality.Sharpness >= MinSharpness &&
+                   face.Quality.Brightness >= MinBrightness &&
+                   face.Quality.Brightness <= MaxBrightness)
+    .ToList();
+    const float MinConfidence = 80.0f;
+
+var facesWithClearFeatures = highQualityFaces
+    .Where(face => face.Landmarks.All(landmark => landmark.Confidence >= MinConfidence))
+    .ToList();
+
+byte numberOfRecognizableFaces = (byte)facesWithClearFeatures.Count;
+
 
 				// If one face is detected, attempt face search
 				var matchingUserData = new HashSet<string>();
-				if (numberOfFaces == 1)
+				if (numberOfFaces == 1 && numberOfRecognizableFaces == 1)
 				{
 					// Create a separate memory stream for face search
 					memoryStream.Position = 0;
