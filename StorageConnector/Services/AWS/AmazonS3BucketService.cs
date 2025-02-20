@@ -64,6 +64,7 @@ namespace StorageConnector.Services.AWS
 
 		private async Task AddFaceToCollection(string faceCollectionId, MemoryStream imageStream, string userData, AmazonRekognitionClient rekognitionClient)
 		{
+			imageStream.Position = 0; // Reset stream again
 			try
 			{
 				var indexFacesRequest = new IndexFacesRequest
@@ -132,13 +133,13 @@ namespace StorageConnector.Services.AWS
 
 				const float MinSharpness = 50.0f;
 				const float MinBrightness = 30.0f;
-				const float MaxBrightness = 70.0f; // Avoid overexposed faces
+				//const float MaxBrightness = 70.0f; // Avoid overexposed faces
 				const float MinFaceConfidence = 80.0f; // Minimum confidence for face detection
 
 				var highQualityFaces = detectFacesResponse.FaceDetails
 					.Where(face => face.Quality.Sharpness >= MinSharpness &&
 								   face.Quality.Brightness >= MinBrightness &&
-								   face.Quality.Brightness <= MaxBrightness &&
+								   //face.Quality.Brightness <= MaxBrightness &&
 								   face.Confidence >= MinFaceConfidence) // Ensure face detection confidence is high
 					.ToList();
 
@@ -172,12 +173,7 @@ namespace StorageConnector.Services.AWS
 						matchingUserData.Add(match.Face.ExternalImageId);
 					}
 
-					// If no match found, add new face
-					if (matchingUserData.Count == 0)
-					{
-						memoryStream.Position = 0; // Reset stream again
-						await AddFaceToCollection(faceListName, memoryStream, userData, bucketNameToClient.Value.AmazonRekognitionClient);
-					}
+					await AddFaceToCollection(faceListName, memoryStream, userData, bucketNameToClient.Value.AmazonRekognitionClient);
 				}
 
 				return new FaceInfo
