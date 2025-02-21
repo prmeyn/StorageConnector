@@ -189,5 +189,30 @@ namespace StorageConnector.Services.AWS
 			}
 		}
 
+		public async Task<DownloadInfo> GenerateDirectDownloadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60)
+		{
+			if (await HasAccounts())
+			{
+				var bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First();
+				if (_amazonS3BucketsInitializer.AmazonS3BucketSettings.CountryIsoCodeMapToAccountName.TryGetValue(countryOfResidenceIsoCode, out string bucketName))
+				{
+					bucketNameToClient = _amazonS3BucketsInitializer.AccountNamesMappedToAmazonS3Client.First(b => b.Key == bucketName);
+				}
+				var request = new GetPreSignedUrlRequest
+				{
+					BucketName = bucketNameToClient.Key,
+					Key = fileReferenceWithPath.ToString(),
+					Verb = HttpVerb.GET,
+					Expires = DateTime.UtcNow.AddMinutes(expiryInMinutes)
+				};
+
+				return new DownloadInfo()
+				{
+					DirectDownloadUrl = bucketNameToClient.Value.AmazonS3Client.GetPreSignedURL(request)
+				};
+			}
+			_logger.LogError("No AmazonS3 account");
+			throw new InvalidOperationException("No AmazonS3 account found");
+		}
 	}
 }

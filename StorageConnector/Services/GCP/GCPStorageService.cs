@@ -17,6 +17,11 @@ namespace StorageConnector.Services.GCP
 			_logger = logger;
 		}
 
+		public Task<DownloadInfo> GenerateDirectDownloadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60)
+		{
+			throw new NotImplementedException();
+		}
+
 		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
 		{
 			if (await HasAccounts())

@@ -185,5 +185,10 @@ namespace StorageConnector.Services.Azure
 
 			return null;
 		}
+
+		public Task<DownloadInfo> GenerateDirectDownloadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

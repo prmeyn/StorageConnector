@@ -39,13 +39,13 @@ namespace StorageConnector
 
 				if (await HasAccounts())
 				{
-					if (await _azureBlobStorageService.HasAccounts())
-					{
-						return await _azureBlobStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
-					}
 					if (await _amazonS3BucketService.HasAccounts())
 					{
 						return await _amazonS3BucketService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
+					}
+					if (await _azureBlobStorageService.HasAccounts())
+					{
+						return await _azureBlobStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
 					}
 					if (await _gcpStorageService.HasAccounts())
 					{
@@ -82,17 +82,39 @@ namespace StorageConnector
 		{
 			if (await HasAccounts())
 			{
-				if (await _azureBlobStorageService.HasAccounts())
-				{
-					return await _azureBlobStorageService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
-				}
 				if (await _amazonS3BucketService.HasAccounts())
 				{
 					return await _amazonS3BucketService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
 				}
+				if (await _azureBlobStorageService.HasAccounts())
+				{
+					return await _azureBlobStorageService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
+				}
 				if (await _gcpStorageService.HasAccounts())
 				{
 					return await _gcpStorageService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
+				}
+			}
+			_logger.LogError("StorageConnectorService has no accounts");
+			throw new InvalidOperationException("StorageConnectorService has no accounts");
+		}
+
+		public async Task<DownloadInfo> GenerateDirectDownloadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60)
+		{
+
+			if (await HasAccounts())
+			{
+				if (await _amazonS3BucketService.HasAccounts())
+				{
+					return await _amazonS3BucketService.GenerateDirectDownloadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
+				}
+				if (await _azureBlobStorageService.HasAccounts())
+				{
+					return await _azureBlobStorageService.GenerateDirectDownloadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
+				}
+				if (await _gcpStorageService.HasAccounts())
+				{
+					return await _gcpStorageService.GenerateDirectDownloadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
 				}
 			}
 			_logger.LogError("StorageConnectorService has no accounts");
