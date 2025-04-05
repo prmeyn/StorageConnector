@@ -145,6 +145,14 @@ namespace StorageConnector.Services.AWS
 
 				numberOfFaces = (byte)highQualityFaces.Count;
 
+				if (numberOfFaces != 1)
+				{
+					foreach (var face in detectFacesResponse.FaceDetails)
+					{
+						_logger.LogInformation("Sharpness: {faceQualitySharpness}, Brightness: {faceQualityBrightness},  Confidence: {faceConfidence}", face.Quality.Sharpness, face.Quality.Brightness, face.Confidence);
+					}
+				}
+
 
 
 
