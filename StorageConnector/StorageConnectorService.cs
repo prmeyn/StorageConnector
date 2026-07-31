@@ -1,5 +1,4 @@
-﻿using EarthCountriesInfo;
-using Microsoft.AspNetCore.StaticFiles;
+using EarthCountriesInfo;
 using Microsoft.Extensions.Logging;
 using StorageConnector.Common;
 using StorageConnector.Common.DTOs;
@@ -9,7 +8,7 @@ using StorageConnector.Services.GCP;
 
 namespace StorageConnector
 {
-	public sealed class StorageConnectorService : IStorageProvider
+	public sealed class StorageConnectorService : IStorageProvider, IFaceRecognitionProvider
 	{
 		private readonly AzureBlobStorageService _azureBlobStorageService;
 		private readonly AmazonS3BucketService _amazonS3BucketService;
@@ -30,95 +29,140 @@ namespace StorageConnector
 			_logger = logger;
 		}
 
-		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 1)
-		{
-			var extension = GetExtensionFromContentType(contentType);
-			if (!string.IsNullOrWhiteSpace(extension))
-			{
-				fileReferenceWithPath = fileReferenceWithPath.ToString().EndsWith(extension) ? fileReferenceWithPath : new CloudFileName($"{fileReferenceWithPath}{extension}");
+		public bool HasAccounts =>
+			_amazonS3BucketService.HasAccounts || _azureBlobStorageService.HasAccounts || _gcpStorageService.HasAccounts;
 
-				if (await HasAccounts())
+		/// <summary>
+		/// The provider serving this deployment.
+		///
+		/// One cloud is configured per deployment; the country map selects an account WITHIN that
+		/// provider rather than between providers. Resolving it in one place also removes the repeated
+		/// HasAccounts probing that used to run up to six times per request (finding M1).
+		/// </summary>
+		private IStorageProvider ActiveProvider
+		{
+			get
+			{
+				if (_amazonS3BucketService.HasAccounts)
 				{
-					if (await _amazonS3BucketService.HasAccounts())
-					{
-						return await _amazonS3BucketService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
-					}
-					if (await _azureBlobStorageService.HasAccounts())
-					{
-						return await _azureBlobStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
-					}
-					if (await _gcpStorageService.HasAccounts())
-					{
-						return await _gcpStorageService.GenerateDirectUploadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, contentType, expiryInMinutes);
-					}
+					return _amazonS3BucketService;
 				}
+
+				if (_azureBlobStorageService.HasAccounts)
+				{
+					return _azureBlobStorageService;
+				}
+
+				if (_gcpStorageService.HasAccounts)
+				{
+					return _gcpStorageService;
+				}
+
 				_logger.LogError("StorageConnectorService has no accounts");
 				throw new InvalidOperationException("StorageConnectorService has no accounts");
 			}
-			_logger.LogError($"Unknown Content Type: {contentType}");
-			throw new InvalidOperationException($"Unknown Content Type: {contentType}");
-
 		}
 
+		public Task<UploadInfo> GenerateDirectUploadInfo(
+			CountryIsoCode countryOfResidenceIsoCode,
+			CloudFileName fileReferenceWithPath,
+			string contentType,
+			int expiryInMinutes = IStorageProvider.DefaultExpiryInMinutes,
+			CancellationToken cancellationToken = default)
+		{
+			var extension = GetExtensionFromContentType(contentType);
+			if (string.IsNullOrWhiteSpace(extension))
+			{
+				_logger.LogError("Unknown content type: {ContentType}", contentType);
+				throw new InvalidOperationException($"Unknown Content Type: {contentType}");
+			}
+
+			var provider = ActiveProvider;
+
+			// The resolved name is what the object is actually stored under, and it is returned to the
+			// caller on UploadInfo.FileName so the upload stays addressable (finding C4).
+			var resolvedFileName = fileReferenceWithPath.Value.EndsWith(extension, StringComparison.Ordinal)
+				? fileReferenceWithPath
+				: new CloudFileName($"{fileReferenceWithPath.Value}{extension}");
+
+			return provider.GenerateDirectUploadInfo(countryOfResidenceIsoCode, resolvedFileName, contentType, expiryInMinutes, cancellationToken);
+		}
+
+		/// <summary>
+		/// Returns the canonical file extension for a content type, or <c>null</c> when unrecognised.
+		/// See <see cref="ContentTypeExtensions"/> for why this is a curated map rather than a reverse
+		/// scan of the static-files provider.
+		/// </summary>
 		public static string? GetExtensionFromContentType(string contentType)
+			=> ContentTypeExtensions.GetExtensionFromContentType(contentType);
+
+		// ------------------------------------------------------ Face recognition
+
+		public bool SupportsFaceRecognition =>
+			(_amazonS3BucketService as IFaceRecognitionProvider).SupportsFaceRecognition
+			|| (_azureBlobStorageService as IFaceRecognitionProvider).SupportsFaceRecognition;
+
+		/// <summary>
+		/// The configured provider, when it supports face recognition.
+		/// </summary>
+		private IFaceRecognitionProvider ActiveFaceProvider
 		{
-			var provider = new FileExtensionContentTypeProvider();
-			foreach (var mapping in provider.Mappings)
+			get
 			{
-				if (mapping.Value.Equals(contentType, StringComparison.OrdinalIgnoreCase))
+				if (ActiveProvider is IFaceRecognitionProvider { SupportsFaceRecognition: true } faceProvider)
 				{
-					return mapping.Key; // Returns something like ".jpg"
+					return faceProvider;
 				}
+
+				_logger.LogError("Face recognition was requested but the configured provider does not support it");
+				throw new NotSupportedException(
+					"The configured storage provider does not support face recognition. AWS supports it; Azure " +
+					"additionally requires a 'StorageConnectors:Azure:VisionAccount' section; Google Cloud Storage " +
+					"does not support it at all.");
 			}
-			return null; // Return null if no match is found
 		}
 
-		public async Task<bool> HasAccounts()
-		{
-			return await _azureBlobStorageService.HasAccounts() || await _amazonS3BucketService.HasAccounts() || await _gcpStorageService.HasAccounts();
-		}
+		public Task<int> CountFacesAsync(
+			CountryIsoCode regionCountryIsoCode,
+			CloudFileName fileNameWithExtension,
+			CancellationToken cancellationToken = default)
+			=> ActiveFaceProvider.CountFacesAsync(regionCountryIsoCode, fileNameWithExtension, cancellationToken);
 
-		public async Task<FaceInfo> GetFaceInfo(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
-		{
-			if (await HasAccounts())
-			{
-				if (await _amazonS3BucketService.HasAccounts())
-				{
-					return await _amazonS3BucketService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
-				}
-				if (await _azureBlobStorageService.HasAccounts())
-				{
-					return await _azureBlobStorageService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
-				}
-				if (await _gcpStorageService.HasAccounts())
-				{
-					return await _gcpStorageService.GetFaceInfo(faceListName, regionCountryIsoCode, fileNameWithExtension, userData);
-				}
-			}
-			_logger.LogError("StorageConnectorService has no accounts");
-			throw new InvalidOperationException("StorageConnectorService has no accounts");
-		}
+		public Task<IReadOnlySet<string>> FindMatchingFacesAsync(
+			string faceCollectionName,
+			CountryIsoCode regionCountryIsoCode,
+			CloudFileName fileNameWithExtension,
+			CancellationToken cancellationToken = default)
+			=> ActiveFaceProvider.FindMatchingFacesAsync(faceCollectionName, regionCountryIsoCode, fileNameWithExtension, cancellationToken);
 
-		public async Task<DownloadInfo> GenerateDirectDownloadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60)
-		{
+		/// <summary>
+		/// Stores a biometric template. See <see cref="IFaceRecognitionProvider.RegisterFaceAsync"/> for
+		/// the obligations that come with calling it.
+		/// </summary>
+		public Task<RegisteredFace> RegisterFaceAsync(
+			string faceCollectionName,
+			CountryIsoCode regionCountryIsoCode,
+			CloudFileName fileNameWithExtension,
+			string subjectId,
+			CancellationToken cancellationToken = default)
+			=> ActiveFaceProvider.RegisterFaceAsync(faceCollectionName, regionCountryIsoCode, fileNameWithExtension, subjectId, cancellationToken);
 
-			if (await HasAccounts())
-			{
-				if (await _amazonS3BucketService.HasAccounts())
-				{
-					return await _amazonS3BucketService.GenerateDirectDownloadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
-				}
-				if (await _azureBlobStorageService.HasAccounts())
-				{
-					return await _azureBlobStorageService.GenerateDirectDownloadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
-				}
-				if (await _gcpStorageService.HasAccounts())
-				{
-					return await _gcpStorageService.GenerateDirectDownloadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes);
-				}
-			}
-			_logger.LogError("StorageConnectorService has no accounts");
-			throw new InvalidOperationException("StorageConnectorService has no accounts");
-		}
+		/// <summary>
+		/// Erases stored biometric templates. Pass the same country used when registering — templates
+		/// live in the recognition service of the account that country maps to.
+		/// </summary>
+		public Task<int> DeleteRegisteredFacesAsync(
+			string faceCollectionName,
+			CountryIsoCode regionCountryIsoCode,
+			string subjectId,
+			CancellationToken cancellationToken = default)
+			=> ActiveFaceProvider.DeleteRegisteredFacesAsync(faceCollectionName, regionCountryIsoCode, subjectId, cancellationToken);
+
+		public Task<DownloadInfo> GenerateDirectDownloadInfo(
+			CountryIsoCode countryOfResidenceIsoCode,
+			CloudFileName fileReferenceWithPath,
+			int expiryInMinutes = IStorageProvider.DefaultExpiryInMinutes,
+			CancellationToken cancellationToken = default)
+			=> ActiveProvider.GenerateDirectDownloadInfo(countryOfResidenceIsoCode, fileReferenceWithPath, expiryInMinutes, cancellationToken);
 	}
 }
