@@ -1,4 +1,4 @@
-﻿using EarthCountriesInfo;
+using EarthCountriesInfo;
 using Google.Cloud.Iam.Credentials.V1;
 using Microsoft.Extensions.Logging;
 using StorageConnector.Common;
@@ -17,55 +17,68 @@ namespace StorageConnector.Services.GCP
 			_logger = logger;
 		}
 
-		public Task<DownloadInfo> GenerateDirectDownloadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, int expiryInMinutes = 60)
+		// Requires both accounts and a usable signing client, not just configuration rows (finding C6).
+		public bool HasAccounts =>
+			_gcpStoragesInitializer.GCPStorageSettings?.Accounts.Count > 0
+			&& _gcpStoragesInitializer.IamCredentialsClient is not null;
+
+		public Task<DownloadInfo> GenerateDirectDownloadInfo(
+			CountryIsoCode countryOfResidenceIsoCode,
+			CloudFileName fileReferenceWithPath,
+			int expiryInMinutes = IStorageProvider.DefaultExpiryInMinutes,
+			CancellationToken cancellationToken = default)
 		{
-			throw new NotImplementedException();
+			throw new NotSupportedException(
+				"Direct download URLs are not implemented for Google Cloud Storage. Configure Azure or AWS, " +
+				"or track https://github.com/prmeyn/StorageConnector/issues for support.");
 		}
 
-		public async Task<UploadInfo> GenerateDirectUploadInfo(CountryIsoCode countryOfResidenceIsoCode, CloudFileName fileReferenceWithPath, string contentType, int expiryInMinutes = 60)
+		public async Task<UploadInfo> GenerateDirectUploadInfo(
+			CountryIsoCode countryOfResidenceIsoCode,
+			CloudFileName fileReferenceWithPath,
+			string contentType,
+			int expiryInMinutes = IStorageProvider.DefaultExpiryInMinutes,
+			CancellationToken cancellationToken = default)
 		{
-			if (await HasAccounts())
+			if (!HasAccounts)
 			{
-				IAMCredentialsClient iamCredentialsClient = _gcpStoragesInitializer._iamCredentialsClient;
-				var blobName = fileReferenceWithPath.ToString();
-				var gcpStorageAccount = _gcpStoragesInitializer.GCPStorageSettings.Accounts.First();
-				if (_gcpStoragesInitializer.GCPStorageSettings.CountryIsoCodeMapToAccountName.TryGetValue(countryOfResidenceIsoCode, out string bucketName))
-				{
-					gcpStorageAccount = _gcpStoragesInitializer.GCPStorageSettings.Accounts.FirstOrDefault(b => b.BucketName == bucketName);
-				}
-
-				var storageUri = $"https://storage.googleapis.com/{gcpStorageAccount.BucketName}/{blobName}";
-				var expiration = DateTimeOffset.UtcNow.AddMinutes(expiryInMinutes).ToUnixTimeSeconds();
-				var stringToSign = $"PUT\n\n{contentType}\n{expiration}\n/{gcpStorageAccount.BucketName}/{blobName}";
-
-				// ✅ Sign the string using IAMCredentialsClient instead of PrivateKey
-				var signBlobResponse = await iamCredentialsClient.SignBlobAsync(new SignBlobRequest
-				{
-					Name = $"projects/-/serviceAccounts/{gcpStorageAccount.ServiceAccountEmail}",
-					Payload = Google.Protobuf.ByteString.CopyFromUtf8(stringToSign)
-				});
-
-				var signature = Convert.ToBase64String(signBlobResponse.SignedBlob.ToByteArray());
-
-				var signedUrl = $"{storageUri}?GoogleAccessId={gcpStorageAccount.ServiceAccountEmail}&Expires={expiration}&Signature={Uri.EscapeDataString(signature)}";
-
-				return new UploadInfo()
-				{
-					DirectUploadUrl = signedUrl,
-					Headers = new Dictionary<string, string> { { "Content-Type", contentType } },
-					HttpMethod = "PUT"
-				};
+				_logger.LogError("No valid GCP accounts found");
+				throw new InvalidOperationException("No valid GCP accounts found");
 			}
 
-			_logger.LogError("No valid GCP accounts found");
-			throw new InvalidOperationException("No valid GCP accounts found");
+			// HasAccounts guarantees both of these are non-null.
+			var settings = _gcpStoragesInitializer.GCPStorageSettings!;
+			IAMCredentialsClient iamCredentialsClient = _gcpStoragesInitializer.IamCredentialsClient!;
+
+			var blobName = fileReferenceWithPath.Value;
+
+			// Previously FirstOrDefault(...) could return null for an unmapped country and the next line
+			// dereferenced it. Selection now falls back consistently (finding H10).
+			var gcpStorageAccount = AccountSelector.Select(
+				settings.CountryIsoCodeMapToAccountName,
+				settings.Accounts,
+				account => account.BucketName,
+				countryOfResidenceIsoCode)!;
+
+			var signedUrl = await GcpV4Signer.CreateSignedUrlAsync(
+				GcpV4Signer.IamSigner(iamCredentialsClient, gcpStorageAccount.ServiceAccountEmail),
+				gcpStorageAccount.ServiceAccountEmail,
+				gcpStorageAccount.BucketName,
+				blobName,
+				httpVerb: "PUT",
+				contentType,
+				expiry: TimeSpan.FromMinutes(expiryInMinutes),
+				utcNow: DateTimeOffset.UtcNow,
+				cancellationToken).ConfigureAwait(false);
+
+			return new UploadInfo()
+			{
+				FileName = fileReferenceWithPath,
+				DirectUploadUrl = signedUrl,
+				Headers = new Dictionary<string, string> { { "Content-Type", contentType } },
+				HttpMethod = "PUT"
+			};
 		}
 
-		public Task<FaceInfo> GetFaceInfo(string faceListName, CountryIsoCode regionCountryIsoCode, CloudFileName fileNameWithExtension, string userData)
-		{
-			throw new NotImplementedException();
-		}
-
-		public async Task<bool> HasAccounts() => _gcpStoragesInitializer?.GCPStorageSettings?.Accounts?.Any() ?? false;
 	}
 }

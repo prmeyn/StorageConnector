@@ -3,13 +3,13 @@
   <PropertyGroup>
     <!-- Package Identity -->
     <PackageId>StorageConnector</PackageId>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
     <Authors>Prashansa Meyn</Authors>
     <Company>Prashansa Meyn</Company>
-    
+
     <!-- Package Description -->
     <Title>StorageConnector - Multi-Cloud Storage Abstraction</Title>
-    <Description>A unified interface for multi-cloud storage operations. StorageConnector provides a consistent abstraction layer for Azure Blob Storage, AWS S3, and Google Cloud Storage with built-in support for pre-signed URLs, geographic routing, and facial recognition integration.</Description>
+    <Description>A unified interface for multi-cloud storage operations. StorageConnector provides a consistent abstraction layer for Azure Blob Storage, AWS S3, and Google Cloud Storage, with pre-signed upload and download URLs, country-based account routing, and an optional face recognition API with explicit biometric erasure.</Description>
     <PackageTags>azure;aws;gcp;storage;blob;s3;cloud;multi-cloud;upload;download;face-recognition</PackageTags>
     <PackageProjectUrl>https://github.com/prmeyn/StorageConnector</PackageProjectUrl>
     
@@ -26,27 +26,52 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    
+    <LangVersion>latest</LangVersion>
+
+    <!-- API documentation ships with the package; warn on undocumented public members. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591: not every public member carries XML docs yet. Tracked, not silently ignored. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Reproducible builds and debuggable packages -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
     <!-- Additional Metadata -->
     <Copyright>Copyright © 2025 Prashansa Meyn</Copyright>
-    <PackageReleaseNotes>Initial release with support for Azure Blob Storage, AWS S3, and Google Cloud Storage.</PackageReleaseNotes>
+    <PackageReleaseNotes>
+2.0.0 - breaking release. Fixes several start-up crashes (missing optional configuration sections no
+longer throw), corrects pre-signed upload URLs so the resolved object key is returned on
+UploadInfo.FileName, replaces the content-type to extension lookup (HEIC, CSV, XML and ZIP uploads
+now work; JPEG resolves to .jpg rather than .jpe), and separates face recognition into
+IFaceRecognitionProvider where storing a biometric template is an explicit call with a matching
+erasure API. HasAccounts is now a synchronous property, every async method accepts a
+CancellationToken, and Google Cloud Storage URLs use V4 signing. See the README for upgrade notes.
+    </PackageReleaseNotes>
   </PropertyGroup>
 	<ItemGroup>
 		<None Include="../LICENSE" Pack="true" PackagePath="\" />
 		<None Include="../README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="AWSSDK.Rekognition" Version="4.0.3.5" />
-		<PackageReference Include="AWSSDK.S3" Version="4.0.13.1" />
+		<InternalsVisibleTo Include="StorageConnector.Tests" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="AWSSDK.Rekognition" Version="4.0.100.7" />
+		<PackageReference Include="AWSSDK.S3" Version="4.0.101.6" />
 		<PackageReference Include="Azure.AI.Vision.Face" Version="1.0.0-beta.2" />
-		<PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
-		<PackageReference Include="EarthCountriesInfo" Version="10.0.0" />
+		<PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
+		<PackageReference Include="EarthCountriesInfo" Version="10.2.0" />
 		<PackageReference Include="Google.Cloud.Iam.Credentials.V1" Version="2.5.0" />
 		<PackageReference Include="Google.Cloud.Iam.V1" Version="3.5.0" />
-		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.3.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.3.11" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.10" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
 	</ItemGroup>
 </Project>

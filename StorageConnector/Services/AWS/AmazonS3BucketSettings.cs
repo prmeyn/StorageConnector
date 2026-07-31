@@ -20,7 +20,13 @@ namespace StorageConnector.Services.AWS
 	{
 		public required string BucketName { get; init; }
 		public required string AwsRegion { get; init; }
-		public required string AwsRegionRekognition { get; init; }
+
+		/// <summary>
+		/// Optional. Rekognition is not offered in every region, so it can be pointed at a different
+		/// one; when unset, <see cref="AwsRegion"/> is used.
+		/// </summary>
+		public string? AwsRegionRekognition { get; init; }
+
 		public AwsCredentials? AwsCredentials { get; init; }
 	}
 }

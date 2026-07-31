@@ -1,50 +1,103 @@
-﻿using Azure;
+using Azure;
 using Azure.AI.Vision.Face;
 using Azure.Storage;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using StorageConnector.Common;
 
-
 namespace StorageConnector.Services.Azure
 {
 	public sealed class AzureBlobStoragesInitializer
-    {
-		internal readonly AzureBlobStorageSettings AzureBlobStorageSettings;
+	{
+		private const string SectionName = $"{ConstantStrings.StorageConnectorsConfigName}:Azure";
+
+		internal readonly AzureBlobStorageSettings? AzureBlobStorageSettings;
 		internal readonly Dictionary<string, BlobServiceClient> AccountNamesMappedToBlobServiceClient = [];
-		internal readonly FaceClient FaceClient;
-		internal readonly FaceAdministrationClient FaceAdministrationClient;
+
+		/// <summary>
+		/// Null unless a <c>VisionAccount</c> section is configured. Blob storage works without it;
+		/// only the face APIs require it.
+		/// </summary>
+		internal readonly FaceClient? FaceClient;
+		internal readonly FaceAdministrationClient? FaceAdministrationClient;
 
 		public AzureBlobStoragesInitializer(IConfiguration configuration)
-        {
-            var azureConfig = configuration.GetSection($"{ConstantStrings.StorageConnectorsConfigName}:Azure");
-			if (azureConfig.Exists())
+		{
+			var azureConfig = configuration.GetSection(SectionName);
+			if (!azureConfig.Exists())
 			{
-				AzureBlobStorageSettings = new AzureBlobStorageSettings
-				{
-					CountryIsoCodeMapToAccountName = (azureConfig.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName).Get<Dictionary<string, string>>()).ParseCountryIsoCodeMap(),
-					Accounts = azureConfig.GetRequiredSection(ConstantStrings.AccountsConfigName).Get<List<AzureAccount>>()
-				};
-				var azureVisionAccountSettings = azureConfig.GetSection("VisionAccount").Get<AzureVisionAccountSettings>();
+				return;
+			}
 
-				if (!string.IsNullOrWhiteSpace(azureVisionAccountSettings.ApiKey) && !string.IsNullOrWhiteSpace(azureVisionAccountSettings.Endpoint))
+			var accounts = azureConfig.GetSection(ConstantStrings.AccountsConfigName).Get<List<AzureAccount>>();
+			if (accounts is null || accounts.Count == 0)
+			{
+				throw StorageConnectorConfigurationException.MissingSetting(
+					$"{SectionName}:{ConstantStrings.AccountsConfigName}",
+					"At least one Azure storage account must be configured.");
+			}
+
+			for (var i = 0; i < accounts.Count; i++)
+			{
+				ValidateAccount(accounts[i], i);
+			}
+
+			AzureBlobStorageSettings = new AzureBlobStorageSettings
+			{
+				CountryIsoCodeMapToAccountName = azureConfig
+					.GetSection(ConstantStrings.CountryIsoCodeMapToAccountNameConfigName)
+					.Get<Dictionary<string, string>>()
+					.ParseCountryIsoCodeMap($"{SectionName}:{ConstantStrings.CountryIsoCodeMapToAccountNameConfigName}"),
+				Accounts = accounts
+			};
+
+			// The Face API is optional: blob storage without face recognition is a supported setup, so a
+			// missing or partially filled VisionAccount section leaves the face clients null rather than
+			// failing start-up.
+			var visionAccount = azureConfig.GetSection("VisionAccount").Get<AzureVisionAccountSettings>();
+			if (visionAccount is not null
+				&& !string.IsNullOrWhiteSpace(visionAccount.Endpoint)
+				&& !string.IsNullOrWhiteSpace(visionAccount.ApiKey))
+			{
+				if (!Uri.TryCreate(visionAccount.Endpoint, UriKind.Absolute, out var faceEndpoint))
 				{
-					//FaceHttpClientEndpoint = azureVisionAccountSettings.Endpoint;
-					var faceEndpoint = new Uri(azureVisionAccountSettings.Endpoint);
-					var credentials = new AzureKeyCredential(azureVisionAccountSettings.ApiKey);
-					FaceClient = new FaceClient(faceEndpoint, credentials);
-					FaceAdministrationClient = new FaceAdministrationClient(faceEndpoint, credentials);
-					//FaceHttpClient = httpClient;
-					//FaceHttpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", azureVisionAccountSettings.ApiKey);
+					throw new StorageConnectorConfigurationException(
+						$"Configuration '{SectionName}:VisionAccount:Endpoint' is not a valid absolute URI: '{visionAccount.Endpoint}'.");
 				}
 
-				foreach (var account in AzureBlobStorageSettings.Accounts)
-				{
-					AccountNamesMappedToBlobServiceClient[account.AccountName] = new BlobServiceClient(
-						new Uri($"https://{account.AccountName}.blob.core.windows.net"),
-						new StorageSharedKeyCredential(account.AccountName, account.AccountKey)
-					);
-				}
+				var credentials = new AzureKeyCredential(visionAccount.ApiKey);
+				FaceClient = new FaceClient(faceEndpoint, credentials);
+				FaceAdministrationClient = new FaceAdministrationClient(faceEndpoint, credentials);
+			}
+
+			foreach (var account in accounts)
+			{
+				AccountNamesMappedToBlobServiceClient[account.AccountName] = new BlobServiceClient(
+					new Uri($"https://{account.AccountName}.blob.core.windows.net"),
+					new StorageSharedKeyCredential(account.AccountName, account.AccountKey)
+				);
+			}
+		}
+
+		private static void ValidateAccount(AzureAccount account, int index)
+		{
+			var path = $"{SectionName}:{ConstantStrings.AccountsConfigName}:{index}";
+
+			// These are marked `required` on AzureAccount, but the configuration binder does not enforce
+			// `required` -- it simply leaves them null. Validate explicitly.
+			if (string.IsNullOrWhiteSpace(account.AccountName))
+			{
+				throw StorageConnectorConfigurationException.MissingSetting($"{path}:AccountName");
+			}
+
+			if (string.IsNullOrWhiteSpace(account.AccountKey))
+			{
+				throw StorageConnectorConfigurationException.MissingSetting($"{path}:AccountKey");
+			}
+
+			if (string.IsNullOrWhiteSpace(account.ContainerName))
+			{
+				throw StorageConnectorConfigurationException.MissingSetting($"{path}:ContainerName");
 			}
 		}
 	}

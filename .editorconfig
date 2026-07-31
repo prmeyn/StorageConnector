@@ -1,0 +1,56 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{yml,yaml,json}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{cs,csx}]
+# The existing codebase indents with tabs; keep it that way.
+indent_style = tab
+tab_width = 4
+
+# --- Language conventions -------------------------------------------------
+# Namespace style is deliberately unset: the library uses block-scoped namespaces throughout and
+# there is no reason to churn every file over it.
+csharp_prefer_braces = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_prefer_conditional_expression_over_return = false:none
+
+# Culture-sensitive string APIs silently change object keys by locale (finding H6),
+# so surface them as warnings rather than hidden defaults.
+dotnet_diagnostic.CA1304.severity = warning  # Specify CultureInfo
+dotnet_diagnostic.CA1305.severity = warning  # Specify IFormatProvider
+dotnet_diagnostic.CA1310.severity = warning  # Specify StringComparison for correctness
+dotnet_diagnostic.CA1862.severity = warning  # Use StringComparison over ToLower/ToUpper
+
+# Structured logging: message templates, not interpolated strings (finding M12).
+dotnet_diagnostic.CA2254.severity = warning
+
+# Implicit conversions must not throw (finding L6).
+dotnet_diagnostic.CA2225.severity = suggestion
+
+# An async method with no await allocates a state machine for nothing (finding M1).
+dotnet_diagnostic.CS1998.severity = warning
+
+# --- Naming ---------------------------------------------------------------
+dotnet_naming_rule.methods_are_pascal_case.severity = warning
+dotnet_naming_rule.methods_are_pascal_case.symbols = any_method
+dotnet_naming_rule.methods_are_pascal_case.style = pascal_case
+
+dotnet_naming_symbols.any_method.applicable_kinds = method
+dotnet_naming_symbols.any_method.applicable_accessibilities = *
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+[StorageConnector.Tests/**.cs]
+# Test names read as sentences; underscores are intentional there.
+dotnet_naming_rule.methods_are_pascal_case.severity = none

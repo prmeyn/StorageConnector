@@ -1,28 +1,55 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.8.34511.84
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11806.211 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorageConnector", "StorageConnector\StorageConnector.csproj", "{385094CC-AE5A-4C38-AB09-B834B179FC52}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFiles", "SolutionFiles", "{CE09CE04-2801-4E89-8D60-5525A1CF195D}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		CLAUDE.md = CLAUDE.md
 		LICENSE = LICENSE
 		README.md = README.md
 		.github\workflows\release.yml = .github\workflows\release.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StorageConnector.Tests", "StorageConnector.Tests\StorageConnector.Tests.csproj", "{1CD1CD85-3935-4D96-AAAC-46CF65C62507}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Debug|x64.Build.0 = Debug|Any CPU
+		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Debug|x86.Build.0 = Debug|Any CPU
 		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Release|x64.ActiveCfg = Release|Any CPU
+		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Release|x64.Build.0 = Release|Any CPU
+		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Release|x86.ActiveCfg = Release|Any CPU
+		{385094CC-AE5A-4C38-AB09-B834B179FC52}.Release|x86.Build.0 = Release|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Debug|x64.Build.0 = Debug|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Debug|x86.Build.0 = Debug|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Release|x64.ActiveCfg = Release|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Release|x64.Build.0 = Release|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Release|x86.ActiveCfg = Release|Any CPU
+		{1CD1CD85-3935-4D96-AAAC-46CF65C62507}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
