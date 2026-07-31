@@ -9,16 +9,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # required for NuGet Trusted Publishing (OIDC)
     steps:
+    # Actions are pinned to a commit SHA rather than a mutable tag, so a compromised or retagged
+    # release cannot silently change what runs here.
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       with:
         # Full history, so the origin/main containment check below can actually resolve.
         fetch-depth: 0
 
     # Previously absent: the job relied on the runner happening to preinstall the right SDK.
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
       with:
         dotnet-version: '10.0.x'
 
@@ -40,16 +45,18 @@ jobs:
     - name: Test
       run: dotnet test --configuration Release --no-build
 
+    # This also emits StorageConnector.${VERSION}.snupkg, which the push step uploads automatically.
     - name: Pack
       run: dotnet pack StorageConnector/StorageConnector.csproj --configuration Release /p:Version=${VERSION} --no-build --output .
 
+    # Exchanges a GitHub OIDC token for an API key valid for one hour, so no long-lived NuGet
+    # credential has to be stored as a repository secret.
+    - name: NuGet login (OIDC -> temp API key)
+      uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+      id: login
+      with:
+        user: globalpay
+
     - name: Push
       # --skip-duplicate so re-running a release job does not fail on an already-published version.
-      run: dotnet nuget push "StorageConnector.${VERSION}.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
-      env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-
-    - name: Push symbols
-      run: dotnet nuget push "StorageConnector.${VERSION}.snupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
-      env:
-        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push "StorageConnector.${VERSION}.nupkg" --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

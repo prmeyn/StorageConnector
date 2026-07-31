@@ -11,12 +11,16 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
+    # Actions are pinned to a commit SHA rather than a mutable tag, so a compromised or retagged
+    # release cannot silently change what runs here.
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
       with:
         dotnet-version: '10.0.x'
 
@@ -33,7 +37,7 @@ jobs:
       run: dotnet pack StorageConnector/StorageConnector.csproj --configuration Release --no-build --output ./artifacts
 
     - name: Upload package artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: nupkg
         path: ./artifacts/*.nupkg
