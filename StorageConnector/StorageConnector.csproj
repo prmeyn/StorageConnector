@@ -18,7 +18,7 @@
     <RepositoryType>git</RepositoryType>
     
     <!-- License and Documentation -->
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     
@@ -65,7 +65,7 @@ CancellationToken, and Google Cloud Storage URLs use V4 signing. See the README 
 		<PackageReference Include="AWSSDK.S3" Version="4.0.101.6" />
 		<PackageReference Include="Azure.AI.Vision.Face" Version="1.0.0-beta.2" />
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
-		<PackageReference Include="EarthCountriesInfo" Version="10.2.0" />
+		<PackageReference Include="EarthCountriesInfo" Version="10.2.1" />
 		<PackageReference Include="Google.Cloud.Iam.Credentials.V1" Version="2.5.0" />
 		<PackageReference Include="Google.Cloud.Iam.V1" Version="3.5.0" />
 		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.3.11" />

@@ -2,7 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/StorageConnector.svg)](https://www.nuget.org/packages/StorageConnector)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/StorageConnector.svg)](https://www.nuget.org/packages/StorageConnector)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
 
 **Let your users upload files straight to cloud storage — without the bytes ever passing through your
@@ -54,12 +54,6 @@ StorageConnector is a pre-signed URL generator, not a general-purpose storage ab
 **no** API for listing, deleting, copying or moving objects, reading or writing metadata, or streaming
 file content through your server. Need those? Reach for your cloud provider's own SDK — it works
 happily alongside this library on the same account. 👍
-
-> **📄 Licence heads-up:** StorageConnector is GPLv3. That's a strong copyleft licence and it affects
-> what you can build on top of it, so do check it suits your project before adopting — see
-> [License](#-license).
-
----
 
 ## 📦 Installation
 
@@ -437,7 +431,7 @@ dotnet build
 
 ## 📄 License
 
-This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
