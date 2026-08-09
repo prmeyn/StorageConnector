@@ -16,14 +16,14 @@ jobs:
     # Actions are pinned to a commit SHA rather than a mutable tag, so a compromised or retagged
     # release cannot silently change what runs here.
     - name: Checkout
-      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         # Full history, so the origin/main containment check below can actually resolve.
         fetch-depth: 0
 
     # Previously absent: the job relied on the runner happening to preinstall the right SDK.
     - name: Setup .NET
-      uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
       with:
         dotnet-version: '10.0.x'
 
